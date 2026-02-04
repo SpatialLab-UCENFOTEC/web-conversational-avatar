@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Avatar from './Avatar';
+import * as api from './Api'
 
 const AvatarDemo : any = () => {
   const [userInput, setUserInput] = useState('');
@@ -23,6 +24,12 @@ const AvatarDemo : any = () => {
     return 'Interesante. Cuéntame un poco más.';
   };
 
+  async function getResponse(prompt:string) : Promise<string> {
+    const req : api.PromptRequest = {prompt}
+    const res = await api.generate(req)
+    return res.response
+  }
+
 
   const speakText = (text : string) => {
     const utterance = new SpeechSynthesisUtterance(text);
@@ -33,8 +40,9 @@ const AvatarDemo : any = () => {
     speechSynthesis.speak(utterance);
   };
 
-  const handleSubmit = () => {
-    const response = getMockResponse(userInput);
+  const handleSubmit = async () => {
+    // const response = getMockResponse(userInput);
+    const response = await getResponse(userInput);
     speakText(response);
   };
 
