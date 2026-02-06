@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Avatar from "./Avatar";
 import { puterTTS } from "./services/puterTTS";
-import { aiService } from "./services/aiService"; // Asegúrate de crear este archivo
+import { aiService } from "./services/aiService";
 import "./AvatarDemo.css";
 
 const AvatarDemo = () => {
@@ -154,7 +154,7 @@ const AvatarDemo = () => {
         <textarea
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           placeholder="Escribe tu mensaje aquí..."
           rows={3}
           disabled={isSpeaking || isProcessing}
