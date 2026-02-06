@@ -6,19 +6,6 @@ import './App.css'
 function App() {
   return (
     <div className="app-container">
-      <header className="app-header">
-        <h1 className="app-title">
-          🤖 Avatar Conversacional del Cenfotec AI Lab
-        </h1>
-        <p className="app-subtitle">
-         Somos lo que sabemos
-        </p>
-        <div className="app-badge">
-          <span className="badge free">100% GRATIS</span>
-          <span className="badge unlimited">SIN LÍMITES</span>
-          <span className="badge no-api">NO API KEYS</span>
-        </div>
-      </header>
       
       <main className="app-main">
         <AvatarDemo />
