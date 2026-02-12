@@ -40,11 +40,7 @@ const PasswordGate = ({ children }) => {
           <button type="submit">Entrar</button>
           {error && <p className="error">{error}</p>}
         </form>
-        <p className="hint">
-          * Contraseña por defecto: <strong>cenfotec2025</strong>
-          <br />
-          <small>(se puede cambiar en variables de entorno)</small>
-        </p>
+        
       </div>
     </div>
   );
