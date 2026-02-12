@@ -49,9 +49,13 @@ class PuterTTS {
       try {
         return await this.speakWithPuter(text, options);
       } catch (puterError) {
-        console.warn('⚠️ Error con Puter.js, usando fallback:', puterError.message);
-        // Si Puter.js falla, continuamos con el fallback
+      console.warn('⚠️ Error con Puter.js, usando fallback:', puterError.message);
+
+      // ✅ si es 401 / auth, deshabilita Puter para no spamear la consola
+      if (puterError?.status === 401 || String(puterError?.message || "").includes("401")) {
+        this.puterLoaded = false;
       }
+    }
     }
 
     // Usar Web Speech API como fallback o primera opción

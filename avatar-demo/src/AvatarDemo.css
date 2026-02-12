@@ -553,3 +553,23 @@
     justify-content: center;
   }
 }
+.mic-button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+.mic-button.active {
+  border-color: #ff3b3b;
+}
+
+.interim {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.status-value.listening {
+  font-weight: 700;
+}
