@@ -281,7 +281,7 @@ const AvatarDemo = () => {
             <strong>IA:</strong> Modelo llama3.2
           </div>
           <div className="info-item">
-            <strong>Desarrollado por:</strong> Cenfotec AI Lab
+            <strong>Desarrollado por:</strong> Cenfotec Spatial Lab
           </div>
         </div>
         {!ttsStatus.speechApiAvailable && (
