@@ -1,21 +1,19 @@
 // src/services/aiService.js
-
 class AIService {
   constructor() {
-    this.puterLoaded = typeof window.puter !== 'undefined';
+    this.puterLoaded = typeof window.puter !== "undefined";
+    this.apiBase = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
   }
 
   async generateResponse(userMessage) {
     try {
-      const response = await fetch(`${window.location.origin}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(`${this.apiBase}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: userMessage,
-          model: 'llama3.2'
-        })
+          model: "llama3.2",
+        }),
       });
 
       if (!response.ok) {
@@ -24,11 +22,8 @@ class AIService {
 
       const data = await response.json();
       return data.response;
-
     } catch (error) {
-      console.error('Error al obtener respuesta:', error);
-      
-      // Fallback: respuestas predefinidas
+      console.error("Error al obtener respuesta:", error);
       return this.fallbackResponse(userMessage);
     }
   }
@@ -36,17 +31,13 @@ class AIService {
   fallbackResponse(userMessage) {
     const lowerMessage = userMessage.toLowerCase();
 
-    if (lowerMessage.includes('hola')) {
-      return '¡Hola! ¿Cómo estás?';
-    } else if (lowerMessage.includes('cómo estás')) {
-      return 'Estoy bien, gracias por preguntar.';
-    } else if (lowerMessage.includes('qué es un avatar')) {
-      return 'Un avatar es una representación digital de una persona, a menudo usada en entornos virtuales.';
-    } else if (lowerMessage.includes('qué puedes hacer')) {
-      return 'Puedo responder tus preguntas y hablar contigo usando texto a voz.';
-    } else {
-      return 'Interesante pregunta. ¿Puedes contarme más?';
-    }
+    if (lowerMessage.includes("hola")) return "¡Hola! ¿Cómo estás?";
+    if (lowerMessage.includes("cómo estás")) return "Estoy bien, gracias por preguntar.";
+    if (lowerMessage.includes("qué es un avatar"))
+      return "Un avatar es una representación digital de una persona, a menudo usada en entornos virtuales.";
+    if (lowerMessage.includes("qué puedes hacer"))
+      return "Puedo responder tus preguntas y hablar contigo usando texto a voz.";
+    return "Interesante pregunta. ¿Puedes contarme más?";
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useState } from "react";
 
 const Avatar = forwardRef(function Avatar(props, ref) {
-  const [mode, setMode] = useState("idle"); // idle | speaking
+  const [mode, setMode] = useState("idle"); // idle | speaking | listening
 
   useImperativeHandle(ref, () => ({
     speak() {
@@ -15,11 +15,22 @@ const Avatar = forwardRef(function Avatar(props, ref) {
     }
   }));
 
-  const src = mode === "speaking" ? "/avatar-speaking.png" : "/avatar-idle.png";
+  const src =
+    mode === "speaking"
+      ? "/avatar-speaking.png"
+      : mode === "listening"
+      ? "/avatar-listening.png"
+      : "/avatar-idle.png";
 
   return (
     <div className={`avatar ${mode}`}>
-      <img src={src} alt="Avatar IA" />
+      <img
+        src={src}
+        alt="Avatar IA"
+        onError={(e) => {
+          e.currentTarget.src = "/avatar-idle.png";
+        }}
+      />
     </div>
   );
 });
