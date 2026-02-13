@@ -1,201 +1,231 @@
 # AI Avatar Demo — Talking Head + LLM + TTS + STT
 
-##  📌 Descripción del proyecto
+## 📌 Project Description
 
-Este proyecto es una **demostración web construida con Node.js, React y Vite** que simula la interacción con un agente de inteligencia artificial mediante:
+This project is a **web-based demonstration built with Node.js, React, and Vite** that simulates interaction with an artificial intelligence agent through:
 
-* Un avatar visual animado
-* Un modelo de lenguaje (LLM)
-* Conversión de texto a voz (TTS)
-* Conversión de voz a texto (STT)
+* An animated visual avatar
+* A Large Language Model (LLM)
+* Text-to-Speech (TTS)
+* Speech-to-Text (STT)
 
-El propósito principal de la aplicación es:
+The primary purpose of the application is to:
 
-* Mostrar de manera tangible el concepto de un “agente de IA” a audiencias no técnicas.
-* Demostrar un flujo completo de conversación humano–máquina.
-* Servir como prototipo ligero para integraciones con modelos de lenguaje reales (LLM).
-* Permitir interacción tanto por texto como por voz.
+* Provide a tangible representation of an AI agent for non-technical audiences.
+* Demonstrate a complete human–machine conversational workflow.
+* Serve as a lightweight prototype for integration with real-world language models.
+* Enable interaction through both text and voice input.
 
-La demo prioriza:
+The demo prioritizes:
 
-* Claridad visual
-* Responsividad
-* Simplicidad técnica
-* Experiencia fluida para demostraciones en vivo
-
- ----
-
-#  Funcionalidades principales
-
-###  Avatar interactivo (Talking Head)
-
-
-El avatar:
-
-* Está implementado con **HTML5 Canvas y JavaScript puro**.
-* Tiene cuatro estados visuales:
-
-  * **Idle (reposo)** → flota suavemente y parpadea.
-  * **Listening (escuchando)** → indica que el sistema está captando voz.
-  * **Thinking (pensando)** → animación mientras el LLM procesa.
-  * **Speaking (hablando)** → la boca se mueve durante la reproducción de audio.
-
-📁 Archivo clave:
-
-* `src/Avatar.jsx`
+* Visual clarity
+* Responsiveness
+* Technical simplicity
+* A smooth experience for live demonstrations
 
 ---
 
-## 💬 Entrada de texto manual
+# Core Features
 
-El usuario puede
+## Interactive Avatar (Talking Head)
 
-* Escribir un mensaje en un campo de texto.
-* Enviar presionando **Enter** o el botón **Enviar**.
-* Visualizar el historial de conversación.
+The avatar:
 
-📁 Archivo clave:
+* Is implemented using **HTML5 Canvas and vanilla JavaScript**.
+* Includes four visual states:
 
-* `src/AvatarDemo.jsx`
+  * **Idle** → Gently floats and blinks.
+  * **Listening** → Indicates that the system is capturing voice input.
+  * **Thinking** → Displays an animation while the LLM processes the request.
+  * **Speaking** → Mouth movement synchronized with audio playback.
 
----
-
-# 🎤 Speech-to-Text (STT) — Entrada por Voz
-
-Se agregó funcionalidad de **Speech-to-Text (STT)** para permitir que los usuarios hablen directamente con el avatar en lugar de escribir.
-
-###  Descripción
-
-Se implementó entrada por voz para mejorar:
-
-* Fluidez de interacción
-* Accesibilidad
-* Experiencia en demostraciones en vivo
+📁 Key file:
+`src/Avatar.jsx`
 
 ---
 
+## 💬 Manual Text Input
 
-##  Implementación técnica
+Users can:
 
-La funcionalidad STT se implementó utilizando:
+* Type a message into a text field.
+* Submit it by pressing **Enter** or clicking the **Send** button.
+* View the conversation history within the interface.
 
-###  puter.js
-
-Se utilizó **puter.js** para gestionar la captura y transcripción de voz de forma ligera y eficiente.
-
-Ventajas:
-
-* Integración sencilla en frontend.
-* No requiere backend complejo adicional.
-* Compatible con navegadores modernos.
-* Manejo simplificado de eventos de audio.
+📁 Key file:
+`src/AvatarDemo.jsx`
 
 ---
 
-## 🔄 Integración con el sistema
+# 🎤 Speech-to-Text (STT) — Voice Input
 
-El flujo de voz funciona de la siguiente manera:
+Speech-to-Text (STT) functionality was implemented to allow users to speak directly to the avatar instead of typing.
 
-1. El usuario presiona el botón de micrófono.
-2. El avatar cambia al estado **Listening**.
-3. **puter.js** captura el audio del usuario.
-4. Se obtiene la transcripción del mensaje.
-5. El texto transcrito se envía al flujo normal del sistema.
-6. El avatar pasa a **Thinking**.
-7. El LLM genera respuesta.
-8. El sistema activa TTS.
-9. El avatar pasa a **Speaking**.
-10. Finaliza y vuelve a **Idle**.
+## Description
+
+Voice input enhances:
+
+* Interaction flow
+* Accessibility
+* Effectiveness during live demonstrations
 
 ---
 
-##  Manejo de estados 
+## Technical Implementation
 
-El sistema controla:
+STT functionality is implemented using:
 
-* Inicio de escucha
-* Detención manual
-* Finalización automática
-* Errores básicos (sin micrófono, permiso denegado, audio no reconocido)
+### puter.js
 
----
+**puter.js** is used to manage audio capture and voice transcription in a lightweight and efficient manner.
 
-##  Resultado
+Advantages:
 
-✔ Entrada por voz completamente funcional
-✔ Retroalimentación visual clara cuando el avatar está escuchando
-✔ Integración perfecta con el flujo existente
+* Simple frontend integration
+* No complex backend required
+* Compatible with modern browsers
+* Simplified audio event handling
 
 ---
 
-# Respuestas generadas por LLM
+## 🔄 System Integration
 
-La demo se conecta a un **modelo de lenguaje real (LLM)** para generar respuestas dinámicas en español.
+The voice interaction flow operates as follows:
 
-Características:
+1. The user presses the microphone button.
+2. The avatar switches to the **Listening** state.
+3. **puter.js** captures the user's audio.
+4. The message is transcribed.
+5. The transcribed text is sent to the standard system flow.
+6. The avatar switches to **Thinking**.
+7. The LLM generates a response.
+8. The system activates TTS.
+9. The avatar switches to **Speaking**.
+10. Once playback finishes, the avatar returns to **Idle**.
 
-* Endpoint configurable.
-* Soporte para conversación contextual.
-* Integración directa desde `App.jsx`.
+---
+
+## State Management
+
+The system handles:
+
+* Listening start
+* Manual stop
+* Automatic completion
+* Basic error handling (no microphone detected, permission denied, unrecognized audio)
+
+---
+
+## Result
+
+✔ Fully functional voice input
+✔ Clear visual feedback during listening
+✔ Seamless integration with the existing conversation flow
+
+📁 Key files:
+`src/AvatarDemo.jsx`
+`src/puter.jsx`
+
+---
+
+# 🤖 LLM-Generated Responses (Ollama Integration)
+
+The demo connects to a **Large Language Model executed locally using Ollama** to generate dynamic responses in Spanish.
+
+## Implementation
+
+**Ollama** is integrated as the inference engine, enabling local execution of the language model. This provides greater control over the environment and avoids direct dependency on external cloud-based AI services.
+
+The backend, implemented in **FastAPI**, acts as an intermediary between the frontend and the LLM running via Ollama.
+
+---
+
+## Features
+
+* Integration with an LLM through **Ollama**
+* Local model execution
+* Context-aware conversation support (message history)
+* Configurable endpoint
+* Direct integration from `App.jsx` and `AvatarDemo.jsx` via `aiService.js`
+
+---
+
+## Response Generation Flow
+
+1. The user submits a message (text or voice).
+2. The frontend sends the request to the backend (FastAPI).
+3. The backend queries the LLM running with **Ollama**.
+4. A generated response is returned.
+5. The response is sent back to the frontend.
+6. The TTS system is activated to reproduce the response audibly.
+
+This modular architecture allows the language model to be replaced without modifying the avatar interface.
 
 ---
 
 # 🔊 Text-to-Speech (TTS)
 
-Se utiliza la **Web Speech API** del navegador para convertir texto a voz.
+Text-to-Speech (TTS) functionality enables the avatar to reproduce generated responses audibly.
 
-Características:
+## Description
 
-* Funciona en Chrome sin servicios externos.
-* Usa voces locales del sistema.
-* Sincronizado con el estado del avatar (Speaking).
-* No requiere streaming.
-📁 Archivo clave:
-`src/App.jsx`
+Text-to-Speech enhances:
 
----
-
-# 🔄 Flujo completo del sistema
-
-1. Usuario escribe o habla.
-2. Si habla → STT convierte voz en texto.
-3. Avatar entra en **Thinking**.
-4. Se consulta el LLM.
-5. Se recibe respuesta.
-6. Se activa TTS.
-7. Avatar entra en **Speaking**.
-8. Finaliza y vuelve a **Idle**.
+* The interactive experience
+* Conversational naturalness
+* Effectiveness during live demonstrations
 
 ---
 
-# 🛠️ Tecnologías utilizadas
+## Technical Implementation
 
-**Frontend:**
+TTS is implemented using:
 
-* Node.js 
+### puter.js
+
+The **puter.js API** is used to dynamically convert LLM-generated text into playable audio directly within the browser.
+
+Technical characteristics:
+
+* Audio generation directly from the frontend
+* No additional microservice required for voice synthesis
+* Automatic playback of generated audio
+* Programmatic handling of playback start and completion
+
+📁 Key files:
+`src/AvatarDemo.jsx`
+`src/puter.jsx`
+
+---
+
+# 🛠️ Technologies Used
+
+## Frontend
+
+* Node.js
 * React
 * Vite
 * HTML5 Canvas
-* CSS moderno
-* puter.js (Speech-to-Text)
+* Modern CSS
+* puter.js (STT and TTS integration)
 
-**IA:**
+## Artificial Intelligence
 
-* LLM vía API
-* Web Speech API (Text-to-Speech)
+* Ollama (Local LLM execution)
+* LLM via API
 
-**Backend:**
+## Backend
 
 * Python (FastAPI)
 * Uvicorn
 
-**Infraestructura:**
+## Infrastructure
 
 * Docker (multi-stage build)
 
 ---
 
-## 📁 Estructura del proyecto
+# 📁 Project Structure
 
 ```
 avatar-demo/
@@ -228,59 +258,22 @@ avatar-demo/
 
 ---
 
-## 📌 Resumen de la estructura
-
-* `public/` → recursos estáticos públicos.
-
-* `src/` → código fuente principal del frontend en React.
-
-  * `assets/` → imágenes e íconos utilizados por la aplicación.
-
-  * `services/` → capa de servicios que encapsula integraciones externas:
-
-    * `aiService.js` → comunicación con el modelo de lenguaje (LLM).
-    * `puterTTS.js` → conversión de texto a voz.
-    * `sttService.js` → implementación de Speech-to-Text usando **puter.js**.
-
-  * `App.jsx` → componente principal que orquesta toda la lógica del sistema (usuario, avatar, LLM, TTS, STT y autenticación).
-
-  * `Avatar.jsx` → renderiza y anima el avatar (estados: Idle, Listening, Thinking, Speaking).
-
-  * `AvatarDemo.jsx` → gestiona la interfaz de conversación y el flujo de interacción.
-
-  * `PasswordGate.jsx` → controla el acceso mediante validación de contraseña.
-
-  * Archivos `.css` → estilos globales y específicos de cada componente.
-
-  * `main.jsx` → punto de entrada de la aplicación React.
-
-* `.env.production` → variables de entorno para despliegue.
-
-* `Dockerfile` → configuración de contenedor multi-stage para build y ejecución.
-
-* `package.json` → dependencias y scripts del proyecto.
-
-* `eslint.config.js` → configuración de calidad de código.
-
-* `README.md` → documentación oficial del proyecto.
-
----
 # 🐳 Docker
 
-El proyecto incluye un **Dockerfile multi-stage** que:
+The project includes a **multi-stage Dockerfile** that:
 
-1. Construye el frontend con Node.
-2. Ejecuta el servidor LLM con Python.
-3. Sirve archivos estáticos generados.
-4. Expone el puerto 8000.
+1. Builds the frontend using Node.
+2. Runs the LLM server using Python.
+3. Serves the generated static files.
+4. Exposes port 8000.
 
-Construcción:
+### Build
 
 ```bash
 docker build -t ai-avatar-demo .
 ```
 
-Ejecución:
+### Run
 
 ```bash
 docker run -p 8000:8000 ai-avatar-demo
@@ -288,60 +281,62 @@ docker run -p 8000:8000 ai-avatar-demo
 
 ---
 
-# 🔐 Protección por Contraseña
+# 🔐 Password Protection
 
-Se agregó un componente `PasswordGate.jsx` para proteger la demo.
+A `PasswordGate.jsx` component was added to protect access to the demo.
 
-Validación contra:
+Validation is performed against:
 
 ```
 import.meta.env.VITE_DEMO_PASSWORD
 ```
 
-Contraseña por defecto:
+Default password:
 
 ```
 cenfotec2025
 ```
 
-Archivo `.env`:
+`.env` file:
 
 ```
 VITE_DEMO_PASSWORD=cenfotec2025
 ```
 
-Agregar `.env` a `.gitignore`.
+Ensure that `.env` is included in `.gitignore`.
 
 ---
 
-# 🚀 Despliegue
+# 🚀 Deployment
 
-Gracias a Docker, el sistema puede desplegarse fácilmente en:
+Thanks to Docker containerization, the system can be deployed on:
 
 * VPS
 * Railway
 * Render
 * Azure / AWS / GCP
-* Servidores institucionales
+* Institutional servers
 
 ---
 
-# 🎯 Conclusión
+# 🎯 Conclusion
 
-Este proyecto demuestra una arquitectura completa de agente conversacional que integra:
+This project demonstrates a complete conversational agent architecture integrating:
 
-* Avatar animado
+* Animated avatar
 * Speech-to-Text (puter.js)
-* Modelo de lenguaje (LLM)
+* Ollama-based Large Language Model (LLM)
 * Text-to-Speech
-* Protección de acceso
-* Contenerización con Docker
+* Access protection
+* Docker-based containerization
 
 ---
 
-## ⚙️ Instalación y ejecución
+# ⚙️ Installation and Execution
 
-### Clonar el repositorio
+## Clone the repository
+
 ```bash
 git clone https://github.com/briam-mora/spatiallab-conversational-avatar.git
 cd avatar-demo
+```
