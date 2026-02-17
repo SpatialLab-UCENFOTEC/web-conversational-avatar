@@ -1,7 +1,7 @@
 // src/Live2DAvatar.jsx
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import * as PIXI from "pixi.js";
-import { Live2DModel } from "pixi-live2d-display";
+import { Live2DModel } from "pixi-live2d-display/cubism4";
 
 const MODEL_URL = "/models/avatar/runtime/wanko_touch.model3.json";
 
@@ -12,6 +12,9 @@ const Live2DAvatar = forwardRef(function Live2DAvatar(_, ref) {
 
   useEffect(() => {
     let destroyed = false;
+
+    // ✅ Bug 3: pixi-live2d-display a veces necesita PIXI global
+    window.PIXI = PIXI;
 
     const positionModel = () => {
       const app = appRef.current;
@@ -24,57 +27,74 @@ const Live2DAvatar = forwardRef(function Live2DAvatar(_, ref) {
       model.scale.set(0.25);
     };
 
-    async function init() {
-      const app = new PIXI.Application({
-        resizeTo: hostRef.current,
-        backgroundAlpha: 0,
-        antialias: true,
-      });
+    const init = async () => {
+      try {
+        if (!hostRef.current) return;
 
-      appRef.current = app;
-      hostRef.current.appendChild(app.view);
+        // 1) Crear app Pixi
+        const app = new PIXI.Application({
+          resizeTo: hostRef.current,
+          backgroundAlpha: 0,
+          antialias: true,
+        });
 
-      const model = await Live2DModel.from(MODEL_URL);
-      if (destroyed) return;
+        appRef.current = app;
+        hostRef.current.appendChild(app.view);
 
-      modelRef.current = model;
-      app.stage.addChild(model);
+        // ✅ Bug 1 + 2: NO await top-level, y MODEL_URL definido
+        const model = await Live2DModel.from(MODEL_URL);
 
-      positionModel();
+        if (destroyed) return;
 
-      // opcional: click para probar motion
-      model.interactive = true;
-      model.on("pointertap", () => {
+        modelRef.current = model;
+        app.stage.addChild(model);
+
+        positionModel();
+
+        // Interacción opcional
+        model.interactive = true;
+        model.on("pointertap", () => {
+          try {
+            model.motion("touch_01");
+          } catch {
+            // no-op
+          }
+        });
+
+        // Reposicionar al cambiar tamaño
+        const onResize = () => positionModel();
+        window.addEventListener("resize", onResize);
+        app.__onResize = onResize;
+
+        // Inicia en idle
         try {
-          // Wanko suele tener motions touch_01..touch_06
-          model.motion("touch_01");
+          model.motion("idle_01");
         } catch {
-          // si no existe, no pasa nada
+          // no-op
         }
-      });
-
-      // reposicionar si cambia tamaño
-      const onResize = () => positionModel();
-      window.addEventListener("resize", onResize);
-
-      // cleanup resize
-      appRef.current.__onResize = onResize;
-    }
+      } catch (err) {
+        console.error("❌ Live2D init error:", err);
+      }
+    };
 
     init();
 
     return () => {
       destroyed = true;
-      const app = appRef.current;
 
+      // limpiar listener resize
+      const app = appRef.current;
       if (app?.__onResize) {
         window.removeEventListener("resize", app.__onResize);
       }
 
+      // destruir pixi app
       if (app) {
-        app.destroy(true);
+        app.destroy(true, { children: true, texture: true, baseTexture: true });
         appRef.current = null;
       }
+
+      modelRef.current = null;
     };
   }, []);
 
@@ -83,36 +103,36 @@ const Live2DAvatar = forwardRef(function Live2DAvatar(_, ref) {
       const model = modelRef.current;
       if (!model) return;
 
-      // ✅ Wanko: motion names típicos
-      // idle_01..idle_04 existen en tu captura
-      // touch_01..touch_06 existen en tu captura
+      // Wanko típico: idle_01..idle_04, touch_01..touch_06
       try {
         if (mode === "idle") model.motion("idle_01");
-        if (mode === "listening") model.motion("idle_02"); // listening = idle alterno
-        if (mode === "speaking") model.motion("touch_01"); // speaking = touch para "animarlo"
+        if (mode === "listening") model.motion("idle_02");
+        if (mode === "speaking") model.motion("touch_01");
+        if (mode === "processing") model.motion("shake_01"); // si existe
       } catch {
-        // fallback final: no crashear si el motion no existe
+        // fallback silencioso
       }
     },
 
-    // lip-sync simple por volumen 0..1
     setMouthOpen(value01) {
       const model = modelRef.current;
       if (!model) return;
+
       try {
         model.internalModel.coreModel.setParameterValueById("ParamMouthOpenY", value01);
       } catch {
-        // algunos modelos usan otro param, no crashear
+        // si el modelo no tiene ese param, no crashear
       }
     },
 
     setExpression(name) {
       const model = modelRef.current;
       if (!model) return;
+
       try {
         model.expression(name);
       } catch {
-        // si no hay expresiones, no pasa nada
+        // no-op
       }
     },
   }));
