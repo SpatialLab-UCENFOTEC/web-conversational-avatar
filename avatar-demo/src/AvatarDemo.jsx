@@ -3,7 +3,7 @@ import { puterTTS } from "./services/puterTTS";
 import { sttService } from "./services/sttService";
 import "./AvatarDemo.css";
 import Live2DAvatar from "./Live2DAvatar";
-import { startFakeLipSync } from "./services/lipSync";
+import { startFakeLipSync, startLipSyncFromAudioElement } from "./services/lipSync";
 
 const AvatarDemo = () => {
   const [inputText, setInputText] = useState("");
@@ -41,9 +41,11 @@ const AvatarDemo = () => {
     const m = userMessage.toLowerCase();
 
     if (m.includes("hola")) return "¡Hola! Estoy funcionando sin backend. ¿En qué te ayudo?";
-    if (m.includes("quién") || m.includes("quien")) return "Soy un avatar de demostración con voz y sincronización labial.";
+    if (m.includes("quién") || m.includes("quien"))
+      return "Soy un avatar de demostración con voz y sincronización labial.";
     if (m.includes("ayuda")) return "Puedes hablar con el micrófono o escribir. Yo responderé con voz.";
-    if (m.includes("lip") || m.includes("boca")) return "¡Mira mi boca moverse! Eso es lip-sync en Live2D.";
+    if (m.includes("lip") || m.includes("boca"))
+      return "¡Mira mi boca moverse! Eso es lip-sync en Live2D.";
     return "Estoy en modo demo sin servidor. Si quieres IA real, luego conectamos un backend.";
   }, []);
 
@@ -125,80 +127,108 @@ const AvatarDemo = () => {
     }
   }, [isSpeaking, isProcessing, scrollToAvatar]);
 
-  // ✅ SEND (sin backend + con lip sync)
- // REEMPLAZA solo la función handleSendMessage en AvatarDemo.jsx
+  // ✅ helper: esperar a que aparezca el <audio> de Puter
+  const waitForPuterAudio = useCallback(async (timeoutMs = 1500) => {
+    const start = performance.now();
+    while (performance.now() - start < timeoutMs) {
+      const audioEl = puterTTS.getCurrentAudio?.();
+      if (audioEl) return audioEl;
+      // espera 1 frame
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    return null;
+  }, []);
 
-const handleSendMessage = useCallback(async () => {
-  if (!inputText.trim()) {
-    alert("Por favor, ingresa un mensaje");
-    return;
-  }
-
-  if (isListening) stopListening();
-
-  const userMessage = inputText.trim();
-  setInputText("");
-
-  scrollToAvatar();
-  setConversation((prev) => [...prev, { sender: "user", text: userMessage }]);
-  setIsProcessing(true);
-
-  try {
-    const aiResponse = getLocalResponse(userMessage);
-    setConversation((prev) => [...prev, { sender: "ai", text: aiResponse }]);
-
-    // 1. Poner avatar en modo speaking ANTES de hablar
-    avatarRef.current?.setMode?.("speaking");
-    setIsSpeaking(true);
-
-    // 2. Detener lip sync anterior
-    stopLipSync();
-
-    // 3. Iniciar lip sync apropiado según el TTS que se usará
-    const audioEl = puterTTS.getCurrentAudio?.();
-
-    if (audioEl) {
-      // ✅ Caso Puter: audio real → lip sync real
-      lipSyncRef.current = startLipSyncFromAudioElement(audioEl, (v) => {
-        avatarRef.current?.setMouthOpen?.(v);
-      });
-    } else {
-      // ✅ Caso Web Speech: no hay audio real → lip sync falso
-      const approxMs = Math.max(1500, aiResponse.length * 55);
-      lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
-        avatarRef.current?.setMouthOpen?.(v);
-      });
+  // ✅ SEND (sin backend + lip sync real/fake correcto)
+  const handleSendMessage = useCallback(async () => {
+    if (!inputText.trim()) {
+      alert("Por favor, ingresa un mensaje");
+      return;
     }
 
-    // 4. Hablar (await bloquea hasta que termina)
-    await puterTTS.speak(aiResponse, "es-ES", {
-      speed: 1.0,
-      volume: 1.0,
-      voice: "alloy",
-    });
+    if (isListening) stopListening();
 
-    scrollToChat();
-  } catch (error) {
-    console.error("Error:", error);
-    alert("Error al hablar: " + error.message);
-  } finally {
-    setIsProcessing(false);
-    setIsSpeaking(false);
-    stopLipSync();
-    avatarRef.current?.setMouthOpen?.(0); // ←
-    // ✅ Volver a idle → ticker pondrá boca en 0 automáticamente
-    avatarRef.current?.setMode?.("idle");
-  }
-}, [inputText, isListening, stopListening, scrollToAvatar, scrollToChat, getLocalResponse, stopLipSync]);
+    const userMessage = inputText.trim();
+    setInputText("");
+
+    scrollToAvatar();
+    setConversation((prev) => [...prev, { sender: "user", text: userMessage }]);
+    setIsProcessing(true);
+
+    try {
+      const aiResponse = getLocalResponse(userMessage);
+      setConversation((prev) => [...prev, { sender: "ai", text: aiResponse }]);
+
+      // speaking antes de hablar
+      avatarRef.current?.setMode?.("speaking");
+      setIsSpeaking(true);
+
+      // parar lip sync anterior
+      stopLipSync();
+
+      // ✅ arrancar TTS SIN await para poder enganchar audio si es Puter
+      const speakPromise = puterTTS.speak(aiResponse, "es-ES", {
+        speed: 1.0,
+        volume: 1.0,
+        voice: "alloy",
+      });
+
+      // ✅ si Puter crea <audio>, lo detectamos y hacemos lip sync real
+      const audioEl = await waitForPuterAudio(1500);
+
+      if (audioEl && avatarRef.current?.setMouthOpen) {
+        lipSyncRef.current = startLipSyncFromAudioElement(
+          audioEl,
+          (v) => avatarRef.current?.setMouthOpen?.(v),
+          { gain: 4.0, smooth: 0.28, minOpen: 0.0 }
+        );
+      } else if (avatarRef.current?.setMouthOpen) {
+        // ✅ si no hubo audio (WebSpeech), usamos fake infinito hasta stop
+        lipSyncRef.current = startFakeLipSync((v) => avatarRef.current?.setMouthOpen?.(v), {
+          speedHz: 8,
+          minOpen: 0.08,
+          maxOpen: 1.0,
+          pauses: true,
+          pauseChance: 0.12,
+        });
+      }
+
+      // ✅ ahora sí esperamos a que termine la voz
+      await speakPromise;
+
+      // ✅ terminó: parar lip sync + volver idle
+      stopLipSync();
+      scrollToChat();
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al hablar: " + error.message);
+      stopLipSync();
+    } finally {
+      setIsProcessing(false);
+      setIsSpeaking(false);
+      stopLipSync();
+      avatarRef.current?.setMode?.("idle");
+    }
+  }, [
+    inputText,
+    isListening,
+    stopListening,
+    scrollToAvatar,
+    scrollToChat,
+    getLocalResponse,
+    stopLipSync,
+    waitForPuterAudio,
+  ]);
 
   const handleStop = useCallback(() => {
     puterTTS.stop();
+    stopLipSync();
+
     setIsSpeaking(false);
     setIsProcessing(false);
 
     if (isListening) stopListening();
 
-    stopLipSync();
     avatarRef.current?.setMode?.("idle");
   }, [isListening, stopListening, stopLipSync]);
 
@@ -211,34 +241,34 @@ const handleSendMessage = useCallback(async () => {
 
   return (
     <div className="avatar-demo">
-      <h1 className="demo-title">Avatar Conversacional </h1>
+      <h1 className="demo-title">Avatar Conversacional</h1>
 
       <div className="status-panel">
         <div className="status-item">
           <span className="status-label">Puter.js:</span>
           <span className={`status-value ${ttsStatus.puterLoaded ? "available" : "unavailable"}`}>
-            {ttsStatus.puterLoaded ? " Cargado" : " No cargado"}
+            {ttsStatus.puterLoaded ? "✅ Cargado" : "⚠️ No cargado"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">TTS del navegador:</span>
           <span className={`status-value ${ttsStatus.speechApiAvailable ? "available" : "unavailable"}`}>
-            {ttsStatus.speechApiAvailable ? "Disponible" : "No disponible"}
+            {ttsStatus.speechApiAvailable ? "✅ Disponible" : "❌ No disponible"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">STT (Micrófono):</span>
           <span className={`status-value ${sttStatus.sttAvailable ? "available" : "unavailable"}`}>
-            {sttStatus.sttAvailable ? "Disponible" : " No disponible"}
+            {sttStatus.sttAvailable ? "✅ Disponible" : "❌ No disponible"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">Estado:</span>
           <span className={`status-value ${isListening ? "listening" : isSpeaking ? "speaking" : isProcessing ? "processing" : "idle"}`}>
-            {isListening ? " Escuchando..." : isSpeaking ? " Hablando..." : isProcessing ? " Procesando..." : " Listo"}
+            {isListening ? "🎙️ Escuchando..." : isSpeaking ? "🎤 Hablando..." : isProcessing ? "🤖 Procesando..." : "✅ Listo"}
           </span>
         </div>
       </div>
@@ -298,7 +328,7 @@ const handleSendMessage = useCallback(async () => {
                   className={`mic-button ${isListening ? "active" : ""}`}
                   title={isListening ? "Detener micrófono" : "Hablar"}
                 >
-                  {isListening ? "⏹️ Detener mic" : " Hablar"}
+                  {isListening ? "⏹️ Detener mic" : "🎙️ Hablar"}
                 </button>
               </div>
             </div>

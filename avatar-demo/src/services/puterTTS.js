@@ -7,7 +7,7 @@ class PuterTTS {
     this.isSpeaking = false;
     this.currentAudio = null;
     this.puterLoaded = false;
-    
+
     // Verificar si Puter.js está cargado
     this.checkPuter();
   }
@@ -16,31 +16,31 @@ class PuterTTS {
    * Verificar si Puter.js está disponible
    */
   checkPuter() {
-    this.puterLoaded = typeof window.puter !== 'undefined';
-    
+    this.puterLoaded = typeof window.puter !== "undefined";
+
     if (this.puterLoaded) {
-      console.log(' Puter.js detectado en el sistema');
+      console.log("✅ Puter.js detectado en el sistema");
       // No intentamos autenticar automáticamente para evitar errores 401
     } else {
-      console.log(' Puter.js no disponible. Usando Web Speech API');
+      console.log("⚠️ Puter.js no disponible. Usando Web Speech API");
     }
-    
+
     return this.puterLoaded;
   }
 
   /**
    * Convertir texto a voz
    */
-  async speak(text, language = 'es-ES', options = {}) {
-    if (!text || text.trim() === '') {
-      throw new Error('El texto no puede estar vacío');
+  async speak(text, language = "es-ES", options = {}) {
+    if (!text || text.trim() === "") {
+      throw new Error("El texto no puede estar vacío");
     }
 
     // Detener cualquier audio actual
     this.stop();
 
-    console.log('🔊 Iniciando síntesis de voz...');
-    console.log('📝 Texto:', text.substring(0, 100));
+    console.log("🔊 Iniciando síntesis de voz...");
+    console.log("📝 Texto:", text.substring(0, 100));
 
     this.isSpeaking = true;
 
@@ -49,16 +49,19 @@ class PuterTTS {
       try {
         return await this.speakWithPuter(text, options);
       } catch (puterError) {
-      console.warn('⚠️ Error con Puter.js, usando fallback:', puterError.message);
+        console.warn("⚠️ Error con Puter.js, usando fallback:", puterError.message);
 
-      //  si es 401 / auth, deshabilita Puter para no spamear la consola
-      if (puterError?.status === 401 || String(puterError?.message || "").includes("401")) {
-        this.puterLoaded = false;
+        // si es 401 / auth, deshabilita Puter para no spamear la consola
+        if (
+          puterError?.status === 401 ||
+          String(puterError?.message || "").includes("401")
+        ) {
+          this.puterLoaded = false;
+        }
       }
     }
-    }
 
-    // Usar Web Speech API como fallback o primera opción
+    // Usar Web Speech API como fallback
     return await this.speakWithWebSpeech(text, language, options);
   }
 
@@ -66,32 +69,38 @@ class PuterTTS {
    * Usar Puter.js para TTS
    */
   async speakWithPuter(text, options = {}) {
-    console.log('🔊 Usando Puter.js para TTS');
-    
-    // NOTA: Puter.js podría requerir autenticación
-    // Si no estamos autenticados, esto fallará silenciosamente
-    // y caerá al fallback
-    
+    console.log("🔊 Usando Puter.js para TTS");
+
     try {
       // Verificar si puter.openai está disponible
-      if (!window.puter.openai || !window.puter.openai.audio) {
-        throw new Error('API de OpenAI no disponible en Puter.js');
+      if (!window.puter?.openai?.audio) {
+        throw new Error("API de OpenAI no disponible en Puter.js");
       }
 
       const response = await window.puter.openai.audio.speech.create({
-        model: options.model || 'tts-1',
-        voice: options.voice || 'alloy',
+        model: options.model || "tts-1",
+        voice: options.voice || "alloy",
         input: text,
         speed: options.speed || 1.0,
       });
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-      
+
       const audio = new Audio(audioUrl);
       audio.volume = options.volume || 1.0;
-      
+
+      // ✅ MUY IMPORTANTE PARA LIP SYNC:
+      // Deja el audio en currentAudio ANTES de reproducir
       this.currentAudio = audio;
+
+      // ✅ Esperar a que el audio cargue metadata (duración, etc.)
+      // Esto hace más estable el analyser
+      await new Promise((resolve) => {
+        if (audio.readyState >= 1) return resolve(); // HAVE_METADATA
+        audio.onloadedmetadata = () => resolve();
+        audio.onerror = () => resolve(); // si falla igual resolvemos (caerá en onerror del play)
+      });
 
       return new Promise((resolve, reject) => {
         audio.onended = () => {
@@ -108,11 +117,14 @@ class PuterTTS {
           reject(error);
         };
 
-        audio.play().catch(reject);
+        audio.play().catch((err) => {
+          this.isSpeaking = false;
+          this.currentAudio = null;
+          URL.revokeObjectURL(audioUrl);
+          reject(err);
+        });
       });
-
     } catch (error) {
-      // Si hay error de autenticación (401) u otro error, lo propagamos
       throw error;
     }
   }
@@ -120,11 +132,11 @@ class PuterTTS {
   /**
    * Usar Web Speech API del navegador
    */
-  async speakWithWebSpeech(text, language = 'es-ES', options = {}) {
-    console.log('🔊 Usando Web Speech API');
-    
-    if (!('speechSynthesis' in window)) {
-      throw new Error('Tu navegador no soporta Text-to-Speech');
+  async speakWithWebSpeech(text, language = "es-ES", options = {}) {
+    console.log("🔊 Usando Web Speech API");
+
+    if (!("speechSynthesis" in window)) {
+      throw new Error("Tu navegador no soporta Text-to-Speech");
     }
 
     // Detener cualquier síntesis previa
@@ -140,29 +152,27 @@ class PuterTTS {
       // Configurar voz (si está disponible)
       if (options.voice) {
         const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find(v => v.name.includes(options.voice));
-        if (selectedVoice) {
-          utterance.voice = selectedVoice;
-        }
+        const selectedVoice = voices.find((v) => v.name.includes(options.voice));
+        if (selectedVoice) utterance.voice = selectedVoice;
       }
 
       utterance.onstart = () => {
-        console.log('▶️ Web Speech TTS iniciado');
+        console.log("▶️ Web Speech TTS iniciado");
       };
 
       utterance.onend = () => {
         this.isSpeaking = false;
-        console.log('Web Speech TTS terminado');
+        console.log("✅ Web Speech TTS terminado");
         resolve();
       };
 
       utterance.onerror = (event) => {
         this.isSpeaking = false;
-        console.error(' Error en Web Speech TTS:', event.error);
+        console.error("❌ Error en Web Speech TTS:", event.error);
         reject(new Error(event.error));
       };
 
-      // Si las voces no están cargadas, esperar a que se carguen
+      // Si las voces no están cargadas, esperar
       if (window.speechSynthesis.getVoices().length === 0) {
         window.speechSynthesis.onvoiceschanged = () => {
           window.speechSynthesis.speak(utterance);
@@ -179,19 +189,21 @@ class PuterTTS {
   stop() {
     // Detener audio de Puter
     if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+      } catch {}
       this.currentAudio = null;
     }
-    
+
     // Detener Web Speech API
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
-    
+
     if (this.isSpeaking) {
       this.isSpeaking = false;
-      console.log('Audio detenido');
+      console.log("⏹️ Audio detenido");
     }
   }
 
@@ -201,15 +213,18 @@ class PuterTTS {
   getStatus() {
     return {
       puterLoaded: this.puterLoaded,
-      speechApiAvailable: 'speechSynthesis' in window,
+      speechApiAvailable: "speechSynthesis" in window,
       isSpeaking: this.isSpeaking,
-      puterAuthenticated: false // No verificamos autenticación para evitar errores
+      puterAuthenticated: false,
     };
   }
-  getCurrentAudio() {
-  return this.currentAudio; // puede ser null
-}
 
+  /**
+   * ✅ Para lip sync real (cuando Puter genera audio)
+   */
+  getCurrentAudio() {
+    return this.currentAudio; // puede ser null
+  }
 }
 
 // Exportar instancia única

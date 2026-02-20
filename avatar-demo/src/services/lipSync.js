@@ -1,89 +1,141 @@
 // src/services/lipSync.js
 
-/**
- * Lip sync real usando AudioContext + AnalyserNode.
- * Úsalo cuando tengas un elemento <audio> real (caso Puter TTS).
- */
-export function startLipSyncFromAudioElement(audioEl, onValue) {
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+export function startLipSyncFromAudioElement(audioEl, onValue, options = {}) {
   if (!audioEl) return { stop: () => {} };
 
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  const ctx = new AudioContext();
+  const {
+    gain = 4.0,
+    smooth = 0.25,
+    minOpen = 0.0,
+  } = options;
 
-  const source = ctx.createMediaElementSource(audioEl);
-  const analyser = ctx.createAnalyser();
-  analyser.fftSize = 1024;
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) return { stop: () => onValue?.(0) };
 
-  source.connect(analyser);
-  analyser.connect(ctx.destination);
+  const ctx = new AudioContextCtor();
 
-  const data = new Uint8Array(analyser.fftSize);
+  let source = null;
+  let analyser = null;
   let rafId = null;
   let stopped = false;
+  let prev = 0;
 
-  const tick = () => {
+  const stopInternal = () => {
     if (stopped) return;
-    analyser.getByteTimeDomainData(data);
+    stopped = true;
 
-    let sum = 0;
-    for (let i = 0; i < data.length; i++) {
-      const v = (data[i] - 128) / 128;
-      sum += v * v;
-    }
-    const rms = Math.sqrt(sum / data.length);
-    const value01 = Math.min(1, rms * 4); // ajusta el multiplicador si necesitas
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
 
-    onValue(value01);
-    rafId = requestAnimationFrame(tick);
+    try { onValue?.(0); } catch {}
+
+    try { audioEl.removeEventListener("ended", stopInternal); } catch {}
+    try { audioEl.removeEventListener("error", stopInternal); } catch {}
+
+    try { source?.disconnect(); } catch {}
+    try { analyser?.disconnect(); } catch {}
+
+    try {
+      if (ctx && ctx.state !== "closed") ctx.close();
+    } catch {}
   };
 
-  ctx.resume().then(() => tick()).catch(() => tick());
+  try {
+    source = ctx.createMediaElementSource(audioEl);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
 
-  return {
-    stop() {
-      stopped = true;
-      if (rafId) cancelAnimationFrame(rafId);
+    source.connect(analyser);
+    analyser.connect(ctx.destination);
+
+    const data = new Uint8Array(analyser.fftSize);
+
+    audioEl.addEventListener("ended", stopInternal);
+    audioEl.addEventListener("error", stopInternal);
+
+    const tick = () => {
+      if (stopped) return;
+
+      analyser.getByteTimeDomainData(data);
+
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
+
+      let value01 = clamp01(rms * gain);
+      value01 = Math.max(minOpen, value01);
+
+      value01 = prev + (value01 - prev) * clamp01(smooth);
+      prev = value01;
+
+      try { onValue(value01); } catch {}
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    (async () => {
       try {
-        onValue(0);
-        source.disconnect();
-        analyser.disconnect();
-        ctx.close();
+        if (ctx.state === "suspended") await ctx.resume();
       } catch {}
-    },
-  };
+      tick();
+    })();
+
+  } catch (e) {
+    console.warn("LipSync real no pudo iniciar:", e?.message || e);
+    stopInternal();
+    return { stop: () => {} };
+  }
+
+  return { stop: stopInternal };
 }
 
-/**
- * Lip sync FALSO para Web Speech API (no da acceso al audio real).
- * Oscila entre 0 y 1 de forma natural, con pausas reales entre sílabas.
- */
-export function startFakeLipSync(durationMs, onValue) {
+// Fake (indefinido) -> se detiene SOLO cuando tú llamas stop()
+export function startFakeLipSync(onValue, options = {}) {
+  const {
+    speedHz = 8,
+    minOpen = 0.08,
+    maxOpen = 1.0,
+    pauses = true,
+    pauseChance = 0.12,
+  } = options;
+
   let rafId = null;
   let stopped = false;
-  const start = performance.now();
+  let t0 = performance.now();
+
+  let inPause = false;
+  let pauseUntil = 0;
 
   const tick = (now) => {
     if (stopped) return;
 
-    const elapsed = now - start;
-    const progress = Math.min(1, elapsed / durationMs);
+    const elapsed = (now - t0) / 1000;
 
-    // ✅ Oscila entre 0 y 1 cruzando cero (simula sílabas)
-    // sin²(t) va de 0 a 1 y vuelve a 0 → forma natural de boca
-    const syllableSpeed = 8; // Hz aprox
-    const raw = Math.pow(Math.sin((elapsed / 1000) * Math.PI * syllableSpeed), 2);
-
-    // Fade out suave al final
-    const fadeOut = 1 - Math.pow(progress, 3);
-    const value01 = raw * fadeOut;
-
-    onValue(value01);
-
-    if (progress >= 1) {
-      onValue(0);
-      return;
+    if (pauses) {
+      if (!inPause && Math.random() < pauseChance) {
+        inPause = true;
+        pauseUntil = now + 80 + Math.random() * 120;
+      }
+      if (inPause) {
+        if (now < pauseUntil) {
+          onValue(0);
+          rafId = requestAnimationFrame(tick);
+          return;
+        } else {
+          inPause = false;
+        }
+      }
     }
 
+    const raw01 = Math.pow(Math.sin(elapsed * Math.PI * speedHz), 2);
+    const value01 = Math.max(0, Math.min(1, minOpen + raw01 * (maxOpen - minOpen)));
+
+    onValue(value01);
     rafId = requestAnimationFrame(tick);
   };
 
