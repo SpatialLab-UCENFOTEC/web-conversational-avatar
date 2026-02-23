@@ -72,7 +72,6 @@ class PuterTTS {
     console.log("🔊 Usando Puter.js para TTS");
 
     try {
-      // Verificar si puter.openai está disponible
       if (!window.puter?.openai?.audio) {
         throw new Error("API de OpenAI no disponible en Puter.js");
       }
@@ -90,16 +89,15 @@ class PuterTTS {
       const audio = new Audio(audioUrl);
       audio.volume = options.volume || 1.0;
 
-      // ✅ MUY IMPORTANTE PARA LIP SYNC:
-      // Deja el audio en currentAudio ANTES de reproducir
+      // ✅ Asignar INMEDIATAMENTE antes de cualquier await
+      // para que waitForPuterAudio() lo encuentre a tiempo
       this.currentAudio = audio;
 
-      // ✅ Esperar a que el audio cargue metadata (duración, etc.)
-      // Esto hace más estable el analyser
+      // Esperar metadata (duración, etc.) para estabilizar el analyser
       await new Promise((resolve) => {
-        if (audio.readyState >= 1) return resolve(); // HAVE_METADATA
+        if (audio.readyState >= 1) return resolve();
         audio.onloadedmetadata = () => resolve();
-        audio.onerror = () => resolve(); // si falla igual resolvemos (caerá en onerror del play)
+        audio.onerror = () => resolve();
       });
 
       return new Promise((resolve, reject) => {
@@ -124,6 +122,7 @@ class PuterTTS {
           reject(err);
         });
       });
+
     } catch (error) {
       throw error;
     }
@@ -192,7 +191,7 @@ class PuterTTS {
       try {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
-      } catch {}
+      } catch { }
       this.currentAudio = null;
     }
 
