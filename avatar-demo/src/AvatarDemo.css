@@ -60,10 +60,11 @@
 .status-value.processing { color: #a78bfa; }
 .status-value.idle { color: #22c55e; }
 
-/* Contenido principal (avatar + chat) */
+/* ─── Contenido principal (avatar + chat) ─────────────────────────────────── */
+/* CAMBIO: columna izquierda más ancha (era 1fr 2fr) */
 .main-content {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1.6fr 2fr;
   gap: 30px;
   min-height: 600px;
 }
@@ -76,16 +77,20 @@
   padding: 20px;
 }
 
+/* ─── Recuadro del avatar ─────────────────────────────────────────────────── */
+/* CAMBIO: altura mínima aumentada (era sin min-height, ahora 480px)          */
+/* El canvas Live2D usa resizeTo, así que llenará todo este espacio            */
 .avatar-container {
   display: grid;
   place-items: center;
-  padding: 20px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   border: 2px solid rgba(255, 255, 255, 0.1);
+  min-height: 320px;          /* ← NUEVO */
+  height: 100%;               /* ← NUEVO: ocupa todo el alto disponible */
 }
 
-/* Avatar */
+/* Avatar (imagen estática, si se usa) */
 .avatar {
   width: 200px;
   height: 200px;
@@ -164,7 +169,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #22c55e; /* idle por defecto */
+  background-color: #22c55e;
 }
 
 .status-dot.idle { background-color: #22c55e; }
@@ -392,29 +397,30 @@
   background: rgba(255, 255, 255, 0.35);
 }
 
-/* Responsive */
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 992px) {
   .main-content {
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .avatar-section {
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 20px;
   }
-  
+
   .avatar-container {
     padding: 15px;
+    min-height: 320px;   /* algo más pequeño en tablet */
   }
-  
+
   .avatar {
     width: 150px;
     height: 150px;
   }
-  
+
   .conversation {
     height: 350px;
   }
@@ -424,41 +430,46 @@
   .avatar-section {
     flex-direction: column;
   }
-  
+
+  .avatar-container {
+    min-height: 260px;
+  }
+
   .status-panel {
     flex-direction: column;
     align-items: center;
     gap: 15px;
   }
-  
+
   .status-item {
     min-width: 100%;
   }
-  
+
   .chat-stats {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .buttons {
     flex-direction: column;
   }
-  
+
   .send-button, .stop-button {
     min-width: 100%;
   }
 }
+
 /* Efecto de resaltado para el avatar cuando está activo */
 .avatar-section.avatar-highlight {
   animation: highlightPulse 1s ease-in-out;
 }
 
 @keyframes highlightPulse {
-  0%, 100% { 
-    box-shadow: 0 0 0 0 rgba(96, 165, 250, 0); 
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(96, 165, 250, 0);
   }
-  50% { 
-    box-shadow: 0 0 0 10px rgba(96, 165, 250, 0.3); 
+  50% {
+    box-shadow: 0 0 0 10px rgba(96, 165, 250, 0.3);
   }
 }
 
@@ -548,11 +559,12 @@
   .navigation-buttons {
     flex-direction: column;
   }
-  
+
   .nav-button {
     justify-content: center;
   }
 }
+
 .mic-button {
   padding: 10px 12px;
   border-radius: 10px;
