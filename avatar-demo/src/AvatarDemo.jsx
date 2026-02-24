@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import Avatar from "./Avatar";
 import { puterTTS } from "./services/puterTTS";
-import { aiService } from "./services/aiService";
 import { sttService } from "./services/sttService";
 import "./AvatarDemo.css";
+import Live2DAvatar from "./Live2DAvatar";
+import { startFakeLipSync } from "./services/lipSync";
 
 const AvatarDemo = () => {
   const [inputText, setInputText] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  //  estados STT
+  // ✅ STT
   const [isListening, setIsListening] = useState(false);
   const [sttStatus, setSttStatus] = useState({ sttAvailable: false });
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -23,180 +23,184 @@ const AvatarDemo = () => {
 
   const avatarRef = useRef(null);
   const conversationEndRef = useRef(null);
-  const avatarContainerRef = useRef(null); // Nueva referencia para el contenedor del avatar
+  const avatarContainerRef = useRef(null);
 
-  // Verificar estado del TTS + STT al cargar
- useEffect(() => {
-  const checkTTSStatus = () => {
-    const status = puterTTS.getStatus
-      ? puterTTS.getStatus()
-      : {
-          puterLoaded: typeof window.puter !== "undefined",
-          speechApiAvailable: "speechSynthesis" in window,
-        };
+  // ✅ Lip sync controller
+  const lipSyncRef = useRef(null);
 
-    setTtsStatus(status);
+  const stopLipSync = useCallback(() => {
+    if (lipSyncRef.current) {
+      lipSyncRef.current.stop();
+      lipSyncRef.current = null;
+    }
+    avatarRef.current?.setMouthOpen?.(0);
+  }, []);
 
-    //  STT: actualizar disponibilidad del micrófono
-    setSttStatus(sttService.getStatus());
-  };
+  // ✅ Mock IA local (sin backend)
+  const getLocalResponse = useCallback((userMessage) => {
+    const m = userMessage.toLowerCase();
 
-  const timer = setTimeout(() => {
-    checkTTSStatus();
-  }, 1000);
+    if (m.includes("hola")) return "¡Hola! Estoy funcionando sin backend. ¿En qué te ayudo?";
+    if (m.includes("quién") || m.includes("quien")) return "Soy un avatar de demostración con voz y sincronización labial.";
+    if (m.includes("ayuda")) return "Puedes hablar con el micrófono o escribir. Yo responderé con voz.";
+    if (m.includes("lip") || m.includes("boca")) return "¡Mira mi boca moverse! Eso es lip-sync en Live2D.";
+    return "Estoy en modo demo sin servidor. Si quieres IA real, luego conectamos un backend.";
+  }, []);
 
-  return () => clearTimeout(timer);
-}, []);
+  // ✅ Estado TTS + STT al cargar
+  useEffect(() => {
+    const checkStatus = () => {
+      const status = puterTTS.getStatus
+        ? puterTTS.getStatus()
+        : {
+            puterLoaded: typeof window.puter !== "undefined",
+            speechApiAvailable: "speechSynthesis" in window,
+          };
 
-  // Función para hacer scroll al avatar
+      setTtsStatus(status);
+      setSttStatus(sttService.getStatus());
+    };
+
+    const timer = setTimeout(checkStatus, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ✅ Scroll helpers
   const scrollToAvatar = useCallback(() => {
-    if (avatarContainerRef.current) {
-      avatarContainerRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-        inline: "nearest",
-      });
+    if (!avatarContainerRef.current) return;
 
-      avatarContainerRef.current.classList.add("avatar-highlight");
-      setTimeout(() => {
-        if (avatarContainerRef.current) {
-          avatarContainerRef.current.classList.remove("avatar-highlight");
-        }
-      }, 1000);
-    }
-  }, []);
-
-  // Función para hacer scroll al chat
-  const scrollToChat = useCallback(() => {
-    if (conversationEndRef.current) {
-      conversationEndRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }
-  }, []);
-
-  // ✅ NUEVO: detener escucha
-const stopListening = useCallback(() => {
-  sttService.stop();
-  setIsListening(false);
-
-  // ✅ Vuelve a normal al presionar
-  if (avatarRef.current?.setMode) {
-    avatarRef.current.setMode("idle");
-  }
-}, []);
-
-  // ✅ NUEVO: iniciar escucha
-  const startListening = useCallback(() => {
-  if (isSpeaking || isProcessing) return;
-
-  setIsListening(true);
-
-  // ✅ Cambia imagen al presionar
-  if (avatarRef.current?.setMode) {
-    avatarRef.current.setMode("listening");
-  }
-
-  try {
-    sttService.start({
-      lang: "es-ES",
-      onResult: (text, isFinal) => {
-        if (isFinal && text) {
-          setInputText(text); // pone lo que dices en el textarea
-        }
-      },
-      onEnd: () => {
-        setIsListening(false);
-        if (avatarRef.current?.setMode) avatarRef.current.setMode("idle");
-      },
-      onError: () => {
-        setIsListening(false);
-        if (avatarRef.current?.setMode) avatarRef.current.setMode("idle");
-      }
+    avatarContainerRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
     });
-  } catch (err) {
+
+    avatarContainerRef.current.classList.add("avatar-highlight");
+    setTimeout(() => avatarContainerRef.current?.classList.remove("avatar-highlight"), 1000);
+  }, []);
+
+  const scrollToChat = useCallback(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, []);
+
+  // ✅ STT controls
+  const stopListening = useCallback(() => {
+    sttService.stop();
     setIsListening(false);
-    if (avatarRef.current?.setMode) avatarRef.current.setMode("idle");
-    alert("No se pudo iniciar el micrófono: " + err.message);
-  }
-}, [isSpeaking, isProcessing]);
+    setInterimTranscript("");
+    avatarRef.current?.setMode?.("idle");
+  }, []);
 
+  const startListening = useCallback(() => {
+    if (isSpeaking || isProcessing) return;
 
-  const handleSendMessage = useCallback(async () => {
-    if (!inputText.trim()) {
-      alert("Por favor, ingresa un mensaje");
-      return;
-    }
-
-    // ✅ NUEVO: si está escuchando, detenemos para evitar conflictos
-    if (isListening) stopListening();
-
-    const userMessage = inputText.trim();
-    setInputText("");
-
-    // 1. Primero, hacer scroll al avatar
+    setIsListening(true);
+    setInterimTranscript("");
     scrollToAvatar();
-
-    // 2. Agregar mensaje del usuario a la conversación
-    const userMessageObj = { sender: "user", text: userMessage };
-    setConversation((prev) => [...prev, userMessageObj]);
-
-    setIsProcessing(true);
-
-    // ✅ NUEVO: si tu Avatar soporta setMode, marcamos processing
-    if (avatarRef.current?.setMode) {
-      avatarRef.current.setMode("processing");
-    }
+    avatarRef.current?.setMode?.("listening");
 
     try {
-      // 3. Obtener respuesta de la IA
-      const aiResponse = await aiService.generateResponse(userMessage);
-
-      // 4. Agregar respuesta de la IA a la conversación
-      const aiMessageObj = { sender: "ai", text: aiResponse };
-      setConversation((prev) => [...prev, aiMessageObj]);
-
-      // 5. Animar el avatar (esto hará que el avatar cambie a modo speaking)
-      if (avatarRef.current) {
-        avatarRef.current.speak();
-      }
-
-      setIsSpeaking(true);
-
-      // 6. Usar TTS para hablar la respuesta (✅ NO TOCAR: queda igual)
-      await puterTTS.speak(aiResponse, "es-ES", {
-        speed: 1.0,
-        volume: 1.0,
-        voice: "alloy",
+      sttService.start({
+        lang: "es-ES",
+        onResult: (text, isFinal) => {
+          setInterimTranscript(isFinal ? "" : text);
+          if (isFinal && text) setInputText(text);
+        },
+        onEnd: () => {
+          setIsListening(false);
+          setInterimTranscript("");
+          avatarRef.current?.setMode?.("idle");
+        },
+        onError: () => {
+          setIsListening(false);
+          setInterimTranscript("");
+          avatarRef.current?.setMode?.("idle");
+        },
       });
-
-      // 7. Cuando termine de hablar, hacer scroll al chat para ver la respuesta completa
-      scrollToChat();
-    } catch (error) {
-      console.error("Error en la conversación:", error);
-      alert("Error al procesar la respuesta: " + error.message);
-    } finally {
-      setIsProcessing(false);
-      setIsSpeaking(false);
-      if (avatarRef.current) {
-        avatarRef.current.stopSpeaking();
-      }
+    } catch (err) {
+      setIsListening(false);
+      setInterimTranscript("");
+      avatarRef.current?.setMode?.("idle");
+      alert("No se pudo iniciar el micrófono: " + err.message);
     }
-  }, [inputText, scrollToAvatar, scrollToChat, isListening, stopListening]);
+  }, [isSpeaking, isProcessing, scrollToAvatar]);
+
+  // ✅ SEND (sin backend + con lip sync)
+ // REEMPLAZA solo la función handleSendMessage en AvatarDemo.jsx
+
+const handleSendMessage = useCallback(async () => {
+  if (!inputText.trim()) {
+    alert("Por favor, ingresa un mensaje");
+    return;
+  }
+
+  if (isListening) stopListening();
+
+  const userMessage = inputText.trim();
+  setInputText("");
+
+  scrollToAvatar();
+  setConversation((prev) => [...prev, { sender: "user", text: userMessage }]);
+  setIsProcessing(true);
+
+  try {
+    const aiResponse = getLocalResponse(userMessage);
+    setConversation((prev) => [...prev, { sender: "ai", text: aiResponse }]);
+
+    // 1. Poner avatar en modo speaking ANTES de hablar
+    avatarRef.current?.setMode?.("speaking");
+    setIsSpeaking(true);
+
+    // 2. Detener lip sync anterior
+    stopLipSync();
+
+    // 3. Iniciar lip sync apropiado según el TTS que se usará
+    const audioEl = puterTTS.getCurrentAudio?.();
+
+    if (audioEl) {
+      // ✅ Caso Puter: audio real → lip sync real
+      lipSyncRef.current = startLipSyncFromAudioElement(audioEl, (v) => {
+        avatarRef.current?.setMouthOpen?.(v);
+      });
+    } else {
+      // ✅ Caso Web Speech: no hay audio real → lip sync falso
+      const approxMs = Math.max(1500, aiResponse.length * 55);
+      lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
+        avatarRef.current?.setMouthOpen?.(v);
+      });
+    }
+
+    // 4. Hablar (await bloquea hasta que termina)
+    await puterTTS.speak(aiResponse, "es-ES", {
+      speed: 1.0,
+      volume: 1.0,
+      voice: "alloy",
+    });
+
+    scrollToChat();
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Error al hablar: " + error.message);
+  } finally {
+    setIsProcessing(false);
+    setIsSpeaking(false);
+    stopLipSync();
+    avatarRef.current?.setMouthOpen?.(0); // ←
+    // ✅ Volver a idle → ticker pondrá boca en 0 automáticamente
+    avatarRef.current?.setMode?.("idle");
+  }
+}, [inputText, isListening, stopListening, scrollToAvatar, scrollToChat, getLocalResponse, stopLipSync]);
 
   const handleStop = useCallback(() => {
     puterTTS.stop();
     setIsSpeaking(false);
     setIsProcessing(false);
 
-    // ✅ NUEVO: también detener STT si estaba escuchando
     if (isListening) stopListening();
 
-    if (avatarRef.current) {
-      avatarRef.current.stopSpeaking();
-    }
-  }, [isListening, stopListening]);
+    stopLipSync();
+    avatarRef.current?.setMode?.("idle");
+  }, [isListening, stopListening, stopLipSync]);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -205,104 +209,48 @@ const stopListening = useCallback(() => {
     }
   };
 
-  const handleViewAvatar = () => {
-    scrollToAvatar();
-  };
-
-  const handleViewChat = () => {
-    scrollToChat();
-  };
-
   return (
     <div className="avatar-demo">
-      <h1 className="demo-title">Avatar Conversacional</h1>
+      <h1 className="demo-title">Avatar Conversacional </h1>
 
       <div className="status-panel">
         <div className="status-item">
           <span className="status-label">Puter.js:</span>
           <span className={`status-value ${ttsStatus.puterLoaded ? "available" : "unavailable"}`}>
-            {ttsStatus.puterLoaded ? "✅ Cargado" : "⚠️ No cargado"}
+            {ttsStatus.puterLoaded ? " Cargado" : " No cargado"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">TTS del navegador:</span>
           <span className={`status-value ${ttsStatus.speechApiAvailable ? "available" : "unavailable"}`}>
-            {ttsStatus.speechApiAvailable ? "✅ Disponible" : "❌ No disponible"}
+            {ttsStatus.speechApiAvailable ? "Disponible" : "No disponible"}
           </span>
         </div>
 
-        {/* ✅ NUEVO: STT status */}
         <div className="status-item">
           <span className="status-label">STT (Micrófono):</span>
           <span className={`status-value ${sttStatus.sttAvailable ? "available" : "unavailable"}`}>
-            {sttStatus.sttAvailable ? "✅ Disponible" : "❌ No disponible"}
+            {sttStatus.sttAvailable ? "Disponible" : " No disponible"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">Estado:</span>
-          <span
-            className={`status-value ${
-              isListening ? "listening" : isSpeaking ? "speaking" : isProcessing ? "processing" : "idle"
-            }`}
-          >
-            {isListening
-              ? "🎙️ Escuchando..."
-              : isSpeaking
-              ? "🎤 Hablando..."
-              : isProcessing
-              ? "🤖 Procesando..."
-              : "✅ Listo"}
+          <span className={`status-value ${isListening ? "listening" : isSpeaking ? "speaking" : isProcessing ? "processing" : "idle"}`}>
+            {isListening ? " Escuchando..." : isSpeaking ? " Hablando..." : isProcessing ? " Procesando..." : " Listo"}
           </span>
         </div>
       </div>
 
       <div className="main-content">
-        {/* Sección izquierda: Avatar */}
         <div className="avatar-section" ref={avatarContainerRef}>
           <div className="avatar-container">
-            <Avatar ref={avatarRef} />
-          </div>
-
-          <div className="avatar-info">
-            <h3>🤖 Avatar IA</h3>
-            <p>Representación digital del Cenfotec AI Lab</p>
-            <div className="avatar-status">
-              <div className="status-indicator">
-                <span
-                  className={`status-dot ${
-                    isListening ? "listening" : isSpeaking ? "speaking" : isProcessing ? "processing" : "idle"
-                  }`}
-                ></span>
-                <span className="status-text">
-                  {isListening ? "Escuchando..." : isSpeaking ? "Hablando..." : isProcessing ? "Procesando..." : "En espera"}
-                </span>
-              </div>
-            </div>
-
-            {/* Botones de navegación */}
-            <div className="navigation-buttons">
-              <button onClick={handleViewAvatar} className="nav-button view-avatar" title="Ver avatar">
-                👁️ Ver avatar
-              </button>
-              <button onClick={handleViewChat} className="nav-button view-chat" title="Ver conversación">
-                💬 Ver chat
-              </button>
-            </div>
+            <Live2DAvatar ref={avatarRef} />
           </div>
         </div>
 
-        {/* Sección derecha: Chat */}
         <div className="chat-section">
-          <div className="chat-header">
-            <h3>💬 Conversación</h3>
-            <div className="chat-stats">
-              <span className="stat-item">📊 {conversation.length} mensajes</span>
-              <span className="stat-item">🤖 Modelo: llama3.2</span>
-            </div>
-          </div>
-
           <div className="conversation-container">
             <div className="conversation">
               {conversation.map((msg, index) => (
@@ -320,12 +268,11 @@ const stopListening = useCallback(() => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Escribe tu mensaje aquí (Presiona Enter para enviar)..."
+                placeholder="Escribe o usa el micrófono..."
                 rows={3}
-                disabled={isSpeaking || isProcessing || isListening} // ✅ NUEVO
+                disabled={isSpeaking || isProcessing || isListening}
               />
 
-              {/* ✅ NUEVO: texto intermedio mientras escucha */}
               {isListening && interimTranscript && (
                 <div className="interim">
                   <em>Escuchando:</em> {interimTranscript}
@@ -335,7 +282,7 @@ const stopListening = useCallback(() => {
               <div className="buttons">
                 <button
                   onClick={handleSendMessage}
-                  disabled={isSpeaking || isProcessing || isListening || !inputText.trim()} // ✅ NUEVO
+                  disabled={isSpeaking || isProcessing || isListening || !inputText.trim()}
                   className="send-button"
                 >
                   {isProcessing ? "Procesando..." : "Enviar mensaje"}
@@ -345,14 +292,13 @@ const stopListening = useCallback(() => {
                   Detener voz
                 </button>
 
-                {/* ✅ NUEVO: botón micrófono */}
                 <button
                   onClick={isListening ? stopListening : startListening}
                   disabled={!sttStatus.sttAvailable || isSpeaking || isProcessing}
                   className={`mic-button ${isListening ? "active" : ""}`}
                   title={isListening ? "Detener micrófono" : "Hablar"}
                 >
-                  {isListening ? "⏹️ Detener mic" : "🎙️ Hablar"}
+                  {isListening ? "⏹️ Detener mic" : " Hablar"}
                 </button>
               </div>
             </div>
@@ -361,34 +307,9 @@ const stopListening = useCallback(() => {
       </div>
 
       <div className="info-panel">
-        <h3>ℹ️ Información del sistema</h3>
-        <div className="info-grid">
-          <div className="info-item">
-            <strong>Backend:</strong> FastAPI con Ollama
-          </div>
-          <div className="info-item">
-            <strong>TTS:</strong> Puter.js + Web Speech API
-          </div>
-          <div className="info-item">
-            <strong>IA:</strong> Modelo llama3.2
-          </div>
-          <div className="info-item">
-            <strong>Desarrollado por:</strong> Cenfotec Spatial Lab
-          </div>
-        </div>
-
-        {!ttsStatus.speechApiAvailable && (
-          <p className="warning">⚠️ Tu navegador no soporta Web Speech API. Prueba con Chrome o Edge.</p>
-        )}
-
-        {/* ✅ NUEVO: warning STT */}
-        {!sttStatus.sttAvailable && (
-          <p className="warning">⚠️ Tu navegador no soporta SpeechRecognition (STT). Prueba con Chrome o Edge.</p>
-        )}
-
-        <div className="usage-tip">
-          💡 <strong>Consejo:</strong> Presiona 🎙️ para hablar; tu texto aparecerá en la caja.
-        </div>
+        <p>
+          ✅ Este modo es <strong>sin backend</strong>. Si quieres IA real con Ollama, luego conectamos un servidor.
+        </p>
       </div>
     </div>
   );
