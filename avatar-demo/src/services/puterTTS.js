@@ -19,10 +19,10 @@ class PuterTTS {
     this.puterLoaded = typeof window.puter !== 'undefined';
     
     if (this.puterLoaded) {
-      console.log('✅ Puter.js detectado en el sistema');
+      console.log(' Puter.js detectado en el sistema');
       // No intentamos autenticar automáticamente para evitar errores 401
     } else {
-      console.log('⚠️ Puter.js no disponible. Usando Web Speech API');
+      console.log(' Puter.js no disponible. Usando Web Speech API');
     }
     
     return this.puterLoaded;
@@ -51,7 +51,7 @@ class PuterTTS {
       } catch (puterError) {
       console.warn('⚠️ Error con Puter.js, usando fallback:', puterError.message);
 
-      // ✅ si es 401 / auth, deshabilita Puter para no spamear la consola
+      //  si es 401 / auth, deshabilita Puter para no spamear la consola
       if (puterError?.status === 401 || String(puterError?.message || "").includes("401")) {
         this.puterLoaded = false;
       }
@@ -152,13 +152,13 @@ class PuterTTS {
 
       utterance.onend = () => {
         this.isSpeaking = false;
-        console.log('✅ Web Speech TTS terminado');
+        console.log('Web Speech TTS terminado');
         resolve();
       };
 
       utterance.onerror = (event) => {
         this.isSpeaking = false;
-        console.error('❌ Error en Web Speech TTS:', event.error);
+        console.error(' Error en Web Speech TTS:', event.error);
         reject(new Error(event.error));
       };
 
@@ -191,7 +191,7 @@ class PuterTTS {
     
     if (this.isSpeaking) {
       this.isSpeaking = false;
-      console.log('⏹️ Audio detenido');
+      console.log('Audio detenido');
     }
   }
 
@@ -206,6 +206,10 @@ class PuterTTS {
       puterAuthenticated: false // No verificamos autenticación para evitar errores
     };
   }
+  getCurrentAudio() {
+  return this.currentAudio; // puede ser null
+}
+
 }
 
 // Exportar instancia única
