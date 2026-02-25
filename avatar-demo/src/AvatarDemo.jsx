@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { puterTTS } from "./services/puterTTS";
 import { sttService } from "./services/sttService";
 import "./AvatarDemo.css";
-import Live2DAvatar from "./Live2DAvatar";
+import VRoidAvatar from "./VRoidAvatar";
 import { startFakeLipSync } from "./services/lipSync";
 
 const AvatarDemo = () => {
@@ -43,7 +43,7 @@ const AvatarDemo = () => {
     if (m.includes("hola")) return "¡Hola! Estoy funcionando sin backend. ¿En qué te ayudo?";
     if (m.includes("quién") || m.includes("quien")) return "Soy un avatar de demostración con voz y sincronización labial.";
     if (m.includes("ayuda")) return "Puedes hablar con el micrófono o escribir. Yo responderé con voz.";
-    if (m.includes("lip") || m.includes("boca")) return "¡Mira mi boca moverse! Eso es lip-sync en Live2D.";
+    if (m.includes("lip") || m.includes("boca")) return "¡Mira mi boca moverse! Eso es lip-sync con VRoid.";
     return "Estoy en modo demo sin servidor. Si quieres IA real, luego conectamos un backend.";
   }, []);
 
@@ -126,70 +126,67 @@ const AvatarDemo = () => {
   }, [isSpeaking, isProcessing, scrollToAvatar]);
 
   // ✅ SEND (sin backend + con lip sync)
- // REEMPLAZA solo la función handleSendMessage en AvatarDemo.jsx
-
-const handleSendMessage = useCallback(async () => {
-  if (!inputText.trim()) {
-    alert("Por favor, ingresa un mensaje");
-    return;
-  }
-
-  if (isListening) stopListening();
-
-  const userMessage = inputText.trim();
-  setInputText("");
-
-  scrollToAvatar();
-  setConversation((prev) => [...prev, { sender: "user", text: userMessage }]);
-  setIsProcessing(true);
-
-  try {
-    const aiResponse = getLocalResponse(userMessage);
-    setConversation((prev) => [...prev, { sender: "ai", text: aiResponse }]);
-
-    // 1. Poner avatar en modo speaking ANTES de hablar
-    avatarRef.current?.setMode?.("speaking");
-    setIsSpeaking(true);
-
-    // 2. Detener lip sync anterior
-    stopLipSync();
-
-    // 3. Iniciar lip sync apropiado según el TTS que se usará
-    const audioEl = puterTTS.getCurrentAudio?.();
-
-    if (audioEl) {
-      // ✅ Caso Puter: audio real → lip sync real
-      lipSyncRef.current = startLipSyncFromAudioElement(audioEl, (v) => {
-        avatarRef.current?.setMouthOpen?.(v);
-      });
-    } else {
-      // ✅ Caso Web Speech: no hay audio real → lip sync falso
-      const approxMs = Math.max(1500, aiResponse.length * 55);
-      lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
-        avatarRef.current?.setMouthOpen?.(v);
-      });
+  const handleSendMessage = useCallback(async () => {
+    if (!inputText.trim()) {
+      alert("Por favor, ingresa un mensaje");
+      return;
     }
 
-    // 4. Hablar (await bloquea hasta que termina)
-    await puterTTS.speak(aiResponse, "es-ES", {
-      speed: 1.0,
-      volume: 1.0,
-      voice: "alloy",
-    });
+    if (isListening) stopListening();
 
-    scrollToChat();
-  } catch (error) {
-    console.error("Error:", error);
-    alert("Error al hablar: " + error.message);
-  } finally {
-    setIsProcessing(false);
-    setIsSpeaking(false);
-    stopLipSync();
-    avatarRef.current?.setMouthOpen?.(0); // ←
-    // ✅ Volver a idle → ticker pondrá boca en 0 automáticamente
-    avatarRef.current?.setMode?.("idle");
-  }
-}, [inputText, isListening, stopListening, scrollToAvatar, scrollToChat, getLocalResponse, stopLipSync]);
+    const userMessage = inputText.trim();
+    setInputText("");
+
+    scrollToAvatar();
+    setConversation((prev) => [...prev, { sender: "user", text: userMessage }]);
+    setIsProcessing(true);
+
+    try {
+      const aiResponse = getLocalResponse(userMessage);
+      setConversation((prev) => [...prev, { sender: "ai", text: aiResponse }]);
+
+      // 1. Poner avatar en modo speaking ANTES de hablar
+      avatarRef.current?.setMode?.("speaking");
+      setIsSpeaking(true);
+
+      // 2. Detener lip sync anterior
+      stopLipSync();
+
+      // 3. Iniciar lip sync apropiado según el TTS que se usará
+      const audioEl = puterTTS.getCurrentAudio?.();
+
+      if (audioEl) {
+        // ✅ Caso Puter: audio real → lip sync real
+        lipSyncRef.current = startLipSyncFromAudioElement(audioEl, (v) => {
+          avatarRef.current?.setMouthOpen?.(v);
+        });
+      } else {
+        // ✅ Caso Web Speech: no hay audio real → lip sync falso
+        const approxMs = Math.max(1500, aiResponse.length * 55);
+        lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
+          avatarRef.current?.setMouthOpen?.(v);
+        });
+      }
+
+      // 4. Hablar (await bloquea hasta que termina)
+      await puterTTS.speak(aiResponse, "es-ES", {
+        speed: 1.0,
+        volume: 1.0,
+        voice: "alloy",
+      });
+
+      scrollToChat();
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al hablar: " + error.message);
+    } finally {
+      setIsProcessing(false);
+      setIsSpeaking(false);
+      stopLipSync();
+      avatarRef.current?.setMouthOpen?.(0);
+      avatarRef.current?.setMode?.("idle");
+    }
+  }, [inputText, isListening, stopListening, scrollToAvatar, scrollToChat, getLocalResponse, stopLipSync]);
 
   const handleStop = useCallback(() => {
     puterTTS.stop();
@@ -246,7 +243,7 @@ const handleSendMessage = useCallback(async () => {
       <div className="main-content">
         <div className="avatar-section" ref={avatarContainerRef}>
           <div className="avatar-container">
-            <Live2DAvatar ref={avatarRef} />
+            <VRoidAvatar ref={avatarRef} />
           </div>
         </div>
 
