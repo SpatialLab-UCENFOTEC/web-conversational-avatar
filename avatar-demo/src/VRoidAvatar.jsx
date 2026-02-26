@@ -5,7 +5,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 
 // ⬇️ Cambia este path al nombre de tu archivo .vrm
-const VRM_URL = "/models/avatar/Avatar.vrm";
+const VRM_URL = "/models/avatar/AvatarMujer.vrm";
 
 const VRoidAvatar = forwardRef(function VRoidAvatar(_, ref) {
   const mountRef = useRef(null);
