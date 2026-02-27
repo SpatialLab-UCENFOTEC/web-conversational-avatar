@@ -41,8 +41,7 @@ const AvatarDemo = () => {
     const m = userMessage.toLowerCase();
 
     if (m.includes("hola")) return "¡Hola! Estoy funcionando sin backend. ¿En qué te ayudo?";
-    if (m.includes("quién") || m.includes("quien"))
-      return "Soy un avatar de demostración con voz y sincronización labial.";
+    if (m.includes("quién") || m.includes("quien")) return "Soy un avatar de demostración con voz y sincronización labial.";
     if (m.includes("ayuda")) return "Puedes hablar con el micrófono o escribir. Yo responderé con voz.";
     if (m.includes("lip") || m.includes("boca")) return "¡Mira mi boca moverse! Eso es lip-sync con VRoid.";
     return "Estoy en modo demo sin servidor. Si quieres IA real, luego conectamos un backend.";
@@ -191,13 +190,12 @@ const AvatarDemo = () => {
 
   const handleStop = useCallback(() => {
     puterTTS.stop();
-    stopLipSync();
-
     setIsSpeaking(false);
     setIsProcessing(false);
 
     if (isListening) stopListening();
 
+    stopLipSync();
     avatarRef.current?.setMode?.("idle");
   }, [isListening, stopListening, stopLipSync]);
 
@@ -210,34 +208,34 @@ const AvatarDemo = () => {
 
   return (
     <div className="avatar-demo">
-      <h1 className="demo-title">Avatar Conversacional</h1>
+      <h1 className="demo-title">Avatar Conversacional </h1>
 
       <div className="status-panel">
         <div className="status-item">
           <span className="status-label">Puter.js:</span>
           <span className={`status-value ${ttsStatus.puterLoaded ? "available" : "unavailable"}`}>
-            {ttsStatus.puterLoaded ? "✅ Cargado" : "⚠️ No cargado"}
+            {ttsStatus.puterLoaded ? " Cargado" : " No cargado"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">TTS del navegador:</span>
           <span className={`status-value ${ttsStatus.speechApiAvailable ? "available" : "unavailable"}`}>
-            {ttsStatus.speechApiAvailable ? "✅ Disponible" : "❌ No disponible"}
+            {ttsStatus.speechApiAvailable ? "Disponible" : "No disponible"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">STT (Micrófono):</span>
           <span className={`status-value ${sttStatus.sttAvailable ? "available" : "unavailable"}`}>
-            {sttStatus.sttAvailable ? "✅ Disponible" : "❌ No disponible"}
+            {sttStatus.sttAvailable ? "Disponible" : " No disponible"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">Estado:</span>
           <span className={`status-value ${isListening ? "listening" : isSpeaking ? "speaking" : isProcessing ? "processing" : "idle"}`}>
-            {isListening ? "🎙️ Escuchando..." : isSpeaking ? "🎤 Hablando..." : isProcessing ? "🤖 Procesando..." : "✅ Listo"}
+            {isListening ? " Escuchando..." : isSpeaking ? " Hablando..." : isProcessing ? " Procesando..." : " Listo"}
           </span>
         </div>
       </div>
@@ -297,7 +295,7 @@ const AvatarDemo = () => {
                   className={`mic-button ${isListening ? "active" : ""}`}
                   title={isListening ? "Detener micrófono" : "Hablar"}
                 >
-                  {isListening ? "⏹️ Detener mic" : "🎙️ Hablar"}
+                  {isListening ? "⏹️ Detener mic" : " Hablar"}
                 </button>
               </div>
             </div>
