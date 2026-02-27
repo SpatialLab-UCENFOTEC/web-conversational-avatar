@@ -121,5 +121,5 @@ avatar-demo/ ├── public/ │    ├── avatar.png │    └── vite
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/usuario/avatar-demo.git
+git clone https://github.com/briam-mora/spatiallab-conversational-avatar.git
 cd avatar-demo

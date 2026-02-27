@@ -81,13 +81,15 @@
 /* CAMBIO: altura mínima aumentada (era sin min-height, ahora 480px)          */
 /* El canvas Live2D usa resizeTo, así que llenará todo este espacio            */
 .avatar-container {
-  display: grid;
-  place-items: center;
+  width: 100%;
+  height: 480px; /* FIX REAL */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  min-height: 320px;          /* ← NUEVO */
-  height: 100%;               /* ← NUEVO: ocupa todo el alto disponible */
+  overflow: hidden;
 }
 
 /* Avatar (imagen estática, si se usa) */
@@ -411,10 +413,9 @@
     gap: 20px;
   }
 
-  .avatar-container {
-    padding: 15px;
-    min-height: 320px;   /* algo más pequeño en tablet */
-  }
+ .avatar-container {
+  height: 380px;
+}
 
   .avatar {
     width: 150px;
@@ -431,8 +432,8 @@
     flex-direction: column;
   }
 
-  .avatar-container {
-    min-height: 260px;
+ .avatar-container {
+    height: 300px;
   }
 
   .status-panel {
