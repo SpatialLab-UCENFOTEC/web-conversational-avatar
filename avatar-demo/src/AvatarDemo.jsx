@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { puterTTS } from "./services/puterTTS";
-import { sttService } from "./services/sttService";
+import { googleTTS } from "./services/googleTTS";
+import { sttService } from "./services/googleSTT";
 import "./AvatarDemo.css";
 import VRoidAvatar from "./VRoidAvatar";
 import { startFakeLipSync } from "./services/lipSync";
@@ -17,7 +17,7 @@ const AvatarDemo = () => {
 
   const [conversation, setConversation] = useState([]);
   const [ttsStatus, setTtsStatus] = useState({
-    puterLoaded: false,
+    googleLoaded: false,
     speechApiAvailable: false,
   });
 
@@ -50,13 +50,7 @@ const AvatarDemo = () => {
   // ✅ Estado TTS + STT al cargar
   useEffect(() => {
     const checkStatus = () => {
-      const status = puterTTS.getStatus
-        ? puterTTS.getStatus()
-        : {
-            puterLoaded: typeof window.puter !== "undefined",
-            speechApiAvailable: "speechSynthesis" in window,
-          };
-
+      const status = googleTTS.getStatus();
       setTtsStatus(status);
       setSttStatus(sttService.getStatus());
     };
@@ -125,7 +119,7 @@ const AvatarDemo = () => {
     }
   }, [isSpeaking, isProcessing, scrollToAvatar]);
 
-  // ✅ SEND (sin backend + con lip sync)
+  // ✅ SEND con Google TTS + lip sync
   const handleSendMessage = useCallback(async () => {
     if (!inputText.trim()) {
       alert("Por favor, ingresa un mensaje");
@@ -152,27 +146,17 @@ const AvatarDemo = () => {
       // 2. Detener lip sync anterior
       stopLipSync();
 
-      // 3. Iniciar lip sync apropiado según el TTS que se usará
-      const audioEl = puterTTS.getCurrentAudio?.();
+      // 3. Google TTS devuelve audio real → intentar lip sync real primero
+      //    Si getCurrentAudio() aún es null (antes de speak), usamos lip sync falso
+      const approxMs = Math.max(1500, aiResponse.length * 55);
+      lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
+        avatarRef.current?.setMouthOpen?.(v);
+      });
 
-      if (audioEl) {
-        // ✅ Caso Puter: audio real → lip sync real
-        lipSyncRef.current = startLipSyncFromAudioElement(audioEl, (v) => {
-          avatarRef.current?.setMouthOpen?.(v);
-        });
-      } else {
-        // ✅ Caso Web Speech: no hay audio real → lip sync falso
-        const approxMs = Math.max(1500, aiResponse.length * 55);
-        lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
-          avatarRef.current?.setMouthOpen?.(v);
-        });
-      }
-
-      // 4. Hablar (await bloquea hasta que termina)
-      await puterTTS.speak(aiResponse, "es-ES", {
+      // 4. Hablar con Google TTS (await bloquea hasta que termina)
+      await googleTTS.speak(aiResponse, "es-ES", {
         speed: 1.0,
-        volume: 1.0,
-        voice: "alloy",
+        voicePreset: "es_wavenet_female",
       });
 
       scrollToChat();
@@ -189,7 +173,7 @@ const AvatarDemo = () => {
   }, [inputText, isListening, stopListening, scrollToAvatar, scrollToChat, getLocalResponse, stopLipSync]);
 
   const handleStop = useCallback(() => {
-    puterTTS.stop();
+    googleTTS.stop();
     setIsSpeaking(false);
     setIsProcessing(false);
 
@@ -208,13 +192,13 @@ const AvatarDemo = () => {
 
   return (
     <div className="avatar-demo">
-      <h1 className="demo-title">Avatar Conversacional </h1>
+      <h1 className="demo-title">Avatar Conversacional</h1>
 
       <div className="status-panel">
         <div className="status-item">
-          <span className="status-label">Puter.js:</span>
-          <span className={`status-value ${ttsStatus.puterLoaded ? "available" : "unavailable"}`}>
-            {ttsStatus.puterLoaded ? " Cargado" : " No cargado"}
+          <span className="status-label">Google TTS:</span>
+          <span className={`status-value ${ttsStatus.proxyConfigured ? "available" : "unavailable"}`}>
+            {ttsStatus.proxyConfigured ? "✅ Proxy configurado" : "⚠️ Sin proxy"}
           </span>
         </div>
 
@@ -228,14 +212,14 @@ const AvatarDemo = () => {
         <div className="status-item">
           <span className="status-label">STT (Micrófono):</span>
           <span className={`status-value ${sttStatus.sttAvailable ? "available" : "unavailable"}`}>
-            {sttStatus.sttAvailable ? "Disponible" : " No disponible"}
+            {sttStatus.sttAvailable ? "Disponible" : "No disponible"}
           </span>
         </div>
 
         <div className="status-item">
           <span className="status-label">Estado:</span>
           <span className={`status-value ${isListening ? "listening" : isSpeaking ? "speaking" : isProcessing ? "processing" : "idle"}`}>
-            {isListening ? " Escuchando..." : isSpeaking ? " Hablando..." : isProcessing ? " Procesando..." : " Listo"}
+            {isListening ? "🎤 Escuchando..." : isSpeaking ? "🔊 Hablando..." : isProcessing ? "⏳ Procesando..." : "✅ Listo"}
           </span>
         </div>
       </div>
@@ -295,7 +279,7 @@ const AvatarDemo = () => {
                   className={`mic-button ${isListening ? "active" : ""}`}
                   title={isListening ? "Detener micrófono" : "Hablar"}
                 >
-                  {isListening ? "⏹️ Detener mic" : " Hablar"}
+                  {isListening ? "⏹️ Detener mic" : "🎤 Hablar"}
                 </button>
               </div>
             </div>
@@ -305,7 +289,7 @@ const AvatarDemo = () => {
 
       <div className="info-panel">
         <p>
-          ✅ Este modo es <strong>sin backend</strong>. Si quieres IA real con Ollama, luego conectamos un servidor.
+          ✅ Usando <strong>Google Cloud TTS + STT</strong>. Asegúrate de tener el proxy corriendo en el puerto 3001.
         </p>
       </div>
     </div>
