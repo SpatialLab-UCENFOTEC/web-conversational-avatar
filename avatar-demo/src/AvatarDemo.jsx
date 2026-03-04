@@ -148,17 +148,16 @@ const AvatarDemo = () => {
 
       // 3. Google TTS devuelve audio real → intentar lip sync real primero
       //    Si getCurrentAudio() aún es null (antes de speak), usamos lip sync falso
-      const approxMs = Math.max(1500, aiResponse.length * 55);
-      lipSyncRef.current = startFakeLipSync(approxMs, (v) => {
-        avatarRef.current?.setMouthOpen?.(v);
-      });
-
+      lipSyncRef.current = startFakeLipSync((v) => {
+     avatarRef.current?.setMouthOpen?.(v);
+  });
       // 4. Hablar con Google TTS (await bloquea hasta que termina)
-      await googleTTS.speak(aiResponse, "es-ES", {
-        speed: 1.0,
-        voicePreset: "es_wavenet_female",
-      });
-
+          await googleTTS.speak(aiResponse, "es-US", {
+      speed: 1.0,
+      voiceName: "es-US-Neural2-B",
+      languageCode: "es-US",
+      ssmlGender: "MALE",
+    });
       scrollToChat();
     } catch (error) {
       console.error("Error:", error);

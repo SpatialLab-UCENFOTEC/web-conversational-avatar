@@ -1,11 +1,11 @@
 // src/App.jsx
 import AvatarDemo from "./AvatarDemo.jsx";
-import PasswordGate from './PasswordGate';  // importar el componente
+import PasswordGate from './PasswordGate';
 import './App.css'
 
 function App() {
   return (
-    <PasswordGate>   {/* ENVUELVE EL CONTENIDO EN EL COMPONENTE PasswordGate */}
+    <PasswordGate>
       <div className="app-container">
         <main className="app-main">
           <AvatarDemo />
@@ -14,13 +14,12 @@ function App() {
         <footer className="app-footer">
           <div className="footer-content">
             <p>
-              <strong>Powered by:</strong> Puter.js Text-to-Speech API • 
+              <strong>Powered by:</strong> Google Cloud Text-to-Speech • 
               <strong> Desarrollado por:</strong> Cenfotec Spatial Lab •
               <strong> Uso:</strong> Presiona Enter para enviar mensajes
             </p>
             <p className="footer-note">
-              Este proyecto usa Puter.js, un servicio gratuito de síntesis de voz 
-              sin restricciones de uso ni necesidad de API keys.
+              Este proyecto usa Google Cloud TTS y STT para síntesis y reconocimiento de voz.
             </p>
           </div>
         </footer>
