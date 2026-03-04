@@ -1,7 +1,6 @@
 // src/services/aiService.js
 class AIService {
   constructor() {
-    this.puterLoaded = typeof window.puter !== "undefined";
     this.apiBase = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
   }
 
