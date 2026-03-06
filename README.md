@@ -1,6 +1,6 @@
-# AI Avatar Demo — Talking Head + LLM + TTS + STT
+# AI Avatar Demo — Live2D + LLM + Google Cloud TTS/STT
 
-## 📌 Project Description
+# Project Description
 
 This project is a **web-based demonstration built with Node.js, React, and Vite** that simulates interaction with an artificial intelligence agent through:
 
@@ -27,24 +27,31 @@ The demo prioritizes:
 
 # Core Features
 
-## Interactive Avatar (Talking Head)
+## Interactive Avatar (Live2D Cubism)
 
 The avatar:
 
-* Is implemented using **HTML5 Canvas and vanilla JavaScript**.
+* Is implemented using **Live2D Cubism**, a technology designed to animate 2D characters in real time.
+* The avatar model is rendered in the browser and controlled through **React components**.
 * Includes four visual states:
 
-  * **Idle** → Gently floats and blinks.
+  * **Idle** → Subtle breathing and blinking animation.
   * **Listening** → Indicates that the system is capturing voice input.
-  * **Thinking** → Displays an animation while the LLM processes the request.
-  * **Speaking** → Mouth movement synchronized with audio playback.
+  * **Thinking** → Animation indicating the AI is processing the request.
+  * **Speaking** → Mouth movement synchronized with generated speech audio.
 
 📁 Key file:
 `src/Avatar.jsx`
 
+Live2D allows:
+
+* Real-time facial animation
+* Parameter control for mouth, eyes, and expressions
+* Smooth character motion without requiring full 3D rendering
+
 ---
 
-## 💬 Manual Text Input
+## Manual Text Input
 
 Users can:
 
@@ -57,9 +64,9 @@ Users can:
 
 ---
 
-# 🎤 Speech-to-Text (STT) — Voice Input
+# Speech-to-Text (STT) — Voice Input
 
-Speech-to-Text (STT) functionality was implemented to allow users to speak directly to the avatar instead of typing.
+Speech-to-Text (STT) functionality allows users to speak directly to the avatar instead of typing.
 
 ## Description
 
@@ -73,35 +80,39 @@ Voice input enhances:
 
 ## Technical Implementation
 
-STT functionality is implemented using:
+Speech recognition is implemented using:
 
-### puter.js
+### Google Cloud Speech-to-Text
 
-**puter.js** is used to manage audio capture and voice transcription in a lightweight and efficient manner.
+The **Google Cloud Speech-to-Text API** is used to convert spoken audio into text.
 
 Advantages:
 
-* Simple frontend integration
-* No complex backend required
-* Compatible with modern browsers
-* Simplified audio event handling
+* High transcription accuracy
+* Support for multiple languages
+* Scalable cloud infrastructure
+* Reliable speech recognition models
+
+The frontend captures the user's audio input and sends it to the backend service, which forwards the audio to the Google Cloud Speech-to-Text API for transcription.
 
 ---
 
-## 🔄 System Integration
+## System Integration
 
 The voice interaction flow operates as follows:
 
 1. The user presses the microphone button.
 2. The avatar switches to the **Listening** state.
-3. **puter.js** captures the user's audio.
-4. The message is transcribed.
-5. The transcribed text is sent to the standard system flow.
-6. The avatar switches to **Thinking**.
-7. The LLM generates a response.
-8. The system activates TTS.
-9. The avatar switches to **Speaking**.
-10. Once playback finishes, the avatar returns to **Idle**.
+3. The browser captures the user's audio.
+4. The audio is sent to the backend service.
+5. The backend sends the audio to **Google Cloud Speech-to-Text**.
+6. The spoken message is transcribed.
+7. The transcribed text is sent to the standard system flow.
+8. The avatar switches to **Thinking**.
+9. The LLM generates a response.
+10. The system activates TTS.
+11. The avatar switches to **Speaking**.
+12. Once playback finishes, the avatar returns to **Idle**.
 
 ---
 
@@ -124,11 +135,11 @@ The system handles:
 
 📁 Key files:
 `src/AvatarDemo.jsx`
-`src/puter.jsx`
+`src/services/sttService.js`
 
 ---
 
-# 🤖 LLM-Generated Responses (Ollama Integration)
+# LLM-Generated Responses (Ollama Integration)
 
 The demo connects to a **Large Language Model executed locally using Ollama** to generate dynamic responses in Spanish.
 
@@ -181,47 +192,50 @@ Text-to-Speech enhances:
 
 TTS is implemented using:
 
-### puter.js
+### Google Cloud Text-to-Speech
 
-The **puter.js API** is used to dynamically convert LLM-generated text into playable audio directly within the browser.
+The **Google Cloud Text-to-Speech API** converts the LLM-generated text responses into natural-sounding speech.
 
 Technical characteristics:
 
-* Audio generation directly from the frontend
-* No additional microservice required for voice synthesis
-* Automatic playback of generated audio
-* Programmatic handling of playback start and completion
+* High-quality neural voices
+* Multiple language options
+* Configurable voice parameters
+* Audio returned as playable output for the frontend
+
+The backend requests audio generation from Google Cloud TTS and returns the audio to the frontend for playback while the avatar enters the **Speaking** state.
 
 📁 Key files:
 `src/AvatarDemo.jsx`
-`src/puter.jsx`
+`src/services/ttsService.js`
 
 ---
 
-# 🛠️ Technologies Used
+# Technologies Used
 
 ## Frontend
 
 * Node.js
 * React
 * Vite
-* HTML5 Canvas
+* Live2D Cubism
 * Modern CSS
-* puter.js (STT and TTS integration)
+
+---
 
 ## Artificial Intelligence
 
 * Ollama (Local LLM execution)
 * LLM via API
 
+---
+
 ## Backend
 
 * Python (FastAPI)
 * Uvicorn
-
-## Infrastructure
-
-* Docker (multi-stage build)
+* Google Cloud Speech-to-Text
+* Google Cloud Text-to-Speech
 
 ---
 
@@ -235,7 +249,7 @@ avatar-demo/
 │    │    └── react.svg
 │    ├── services/
 │    │    ├── aiService.js
-│    │    ├── puterTTS.js
+│    │    ├── ttsService.js
 │    │    └── sttService.js
 │    ├── App.css
 │    ├── App.jsx
@@ -263,7 +277,7 @@ avatar-demo/
 The project includes a **multi-stage Dockerfile** that:
 
 1. Builds the frontend using Node.
-2. Runs the LLM server using Python.
+2. Runs the backend API using Python.
 3. Serves the generated static files.
 4. Exposes port 8000.
 
@@ -307,36 +321,21 @@ Ensure that `.env` is included in `.gitignore`.
 
 ---
 
-# 🚀 Deployment
-
-Thanks to Docker containerization, the system can be deployed on:
-
-* VPS
-* Railway
-* Render
-* Azure / AWS / GCP
-* Institutional servers
-
----
-
-# 🎯 Conclusion
+# Conclusion
 
 This project demonstrates a complete conversational agent architecture integrating:
 
-* Animated avatar
-* Speech-to-Text (puter.js)
-* Ollama-based Large Language Model (LLM)
-* Text-to-Speech
-* Access protection
-* Docker-based containerization
+* **Live2D animated avatar**
+* **Google Cloud Speech-to-Text**
+* **Ollama-based Large Language Model (LLM)**
+* **Google Cloud Text-to-Speech**
+* **Access protection**
+* **Docker-based containerization**
 
 ---
 
-# ⚙️ Installation and Execution
+# Installation and Execution
 
 ## Clone the repository
 
-```bash
 git clone https://github.com/briam-mora/spatiallab-conversational-avatar.git
-cd avatar-demo
-```
