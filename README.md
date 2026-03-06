@@ -339,3 +339,5 @@ This project demonstrates a complete conversational agent architecture integrati
 ## Clone the repository
 
 git clone https://github.com/briam-mora/spatiallab-conversational-avatar.git
+cd avatar-demo
+```
