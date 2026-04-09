@@ -48,12 +48,11 @@ const InochiAvatarCanvas = forwardRef(function InochiAvatarCanvas(
   };
 
   const applyCam = () => {
-    const viewer = viewerRef.current;
-    if (!viewer) return;
-    const { x, y, zoom, rot } = camRef.current;
-    try { viewer.set_camera(x, y, zoom, rot); } catch (e) { console.warn("cam:", e); }
+  const viewer = viewerRef.current;
+  if (!viewer) return;
+  const { x, y, zoom, rot } = camRef.current;
+  try { viewer.set_camera(x, y, zoom, rot); } catch (e) { console.warn("cam:", e); }
   };
-
   const applyParams = () => {
     const viewer = viewerRef.current;
     if (!viewer || !mouthParamRef.current) return;
