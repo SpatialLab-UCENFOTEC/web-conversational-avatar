@@ -29,7 +29,7 @@ const InochiAvatarCanvas = forwardRef(function InochiAvatarCanvas(
 
   const mouthParamRef = useRef(null);
   const stateRef = useRef({ mouthOpen: 0, mode: "idle" });
-  const camRef = useRef({ x: 0, y: -1.2, zoom: 0.18, rot: 0 });
+  const camRef = useRef({ x: 0, y: 1500, zoom: 0.18, rot: 0 });
 
   const resizeCanvas = () => {
     const container = containerRef.current;

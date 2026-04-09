@@ -177,10 +177,10 @@ const AvatarDemo = () => {
         avatarRef.current?.setMouthOpen?.(value);
       });
 
-     await googleTTS.speak(aiResponse, "es-ES", {
+     await googleTTS.speak(aiResponse, "es-US", {
       speed: 0.95,
       voiceName: "es-US-Chirp-HD-O",
-      languageCode: "es-ES"
+      languageCode: "es-US"
       });
       scrollToChat();
     } catch (error) {
