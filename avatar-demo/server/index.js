@@ -1,4 +1,3 @@
-// server/index.js
 import express from "express";
 import cors from "cors";
 import { GoogleAuth } from "google-auth-library";
@@ -9,17 +8,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" })); // puerto de Vite
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
-// ── Google Auth ──────────────────────────────────────────────────────────────
 const auth = new GoogleAuth({
   keyFile: join(__dirname, "google-credentials.json"),
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
 });
 
-// ── GET /token → devuelve access token temporal (~1h) ────────────────────────
-app.get("/token", async (req, res) => {
+app.get("/token", async (_req, res) => {
   try {
     const client = await auth.getClient();
     const tokenResponse = await client.getAccessToken();
@@ -30,8 +27,9 @@ app.get("/token", async (req, res) => {
   }
 });
 
-// ── Health check ─────────────────────────────────────────────────────────────
-app.get("/health", (_, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
 
 app.listen(PORT, () => {
   console.log(`✅ Proxy corriendo en http://localhost:${PORT}`);
