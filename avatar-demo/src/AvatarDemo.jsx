@@ -263,12 +263,12 @@ return (
           }`}
         >
           {isListening
-            ? "🎤 Escuchando..."
+            ? "Escuchando..."
             : isSpeaking
-            ? "🔊 Hablando..."
+            ? "Hablando..."
             : isProcessing
-            ? "⏳ Procesando..."
-            : "✅ Listo"}
+            ? "Procesando..."
+            : "Listo"}
         </span>
       </div>
     </div>
