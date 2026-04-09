@@ -177,13 +177,11 @@ const AvatarDemo = () => {
         avatarRef.current?.setMouthOpen?.(value);
       });
 
-      await googleTTS.speak(aiResponse, "es-US", {
-        speed: 1.0,
-        voiceName: "es-US-Neural2-B",
-        languageCode: "es-US",
-        ssmlGender: "FEMALE",
+     await googleTTS.speak(aiResponse, "es-ES", {
+      speed: 0.95,
+      voiceName: "es-US-Chirp-HD-O",
+      languageCode: "es-ES"
       });
-
       scrollToChat();
     } catch (error) {
       console.error("Error:", error);
@@ -279,9 +277,9 @@ return (
       <div className="avatar-section" ref={avatarContainerRef}>
         <div className="avatar-container">
           <InochiAvatarCanvas
-            ref={avatarRef}
-            avatarUrl="/avatar/Irene.inp"
-          />
+          ref={avatarRef}
+          avatarUrl="/avatar/Irene.inp"
+        />
         </div>
       </div>
 
