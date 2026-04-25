@@ -114,56 +114,67 @@ class GoogleTTS {
    *   languageCode?: ej. "es-ES" (default)
    * }
    */
-  async speak(text, language = "es-ES", options = {}) {
-    if (!text?.trim()) throw new Error("El texto no puede estar vacío");
+ async speak(text, language = "es-ES", options = {}) {
+  if (!text?.trim()) throw new Error("El texto no puede estar vacío");
 
-    this.stop();
-    this.isSpeaking = true;
+  this.stop();
+  this.isSpeaking = true;
 
-    console.log("🔊 Google TTS — sintetizando...");
+  console.log("🔊 Google TTS — sintetizando...");
 
-    try {
-      const blob     = await this._synthesize(text, { languageCode: language, ...options });
-      const audioUrl = URL.createObjectURL(blob);
-      const audio    = new Audio(audioUrl);
-      audio.volume   = 1.0; // volumeGainDb ya lo controla Google
+  try {
+    const blob = await this._synthesize(text, {
+      languageCode: language,
+      ...options,
+    });
 
-      this.currentAudio = audio;
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    audio.volume = 1.0;
 
-      // Esperar metadata para que el lip-sync pueda leer duración
-      await new Promise((resolve) => {
-        if (audio.readyState >= 1) return resolve();
-        audio.onloadedmetadata = resolve;
-        audio.onerror          = resolve;
+    this.currentAudio = audio;
+
+    await new Promise((resolve) => {
+      if (audio.readyState >= 1) return resolve();
+      audio.onloadedmetadata = resolve;
+      audio.onerror = resolve;
+    });
+
+    return new Promise((resolve, reject) => {
+      audio.onplay = () => {
+        options.onAudioStart?.();
+      };
+
+      audio.onended = () => {
+        options.onAudioEnd?.();
+        this.isSpeaking = false;
+        this.currentAudio = null;
+        URL.revokeObjectURL(audioUrl);
+        resolve();
+      };
+
+      audio.onerror = (e) => {
+        options.onAudioEnd?.();
+        this.isSpeaking = false;
+        this.currentAudio = null;
+        URL.revokeObjectURL(audioUrl);
+        reject(e);
+      };
+
+      audio.play().catch((e) => {
+        options.onAudioEnd?.();
+        this.isSpeaking = false;
+        this.currentAudio = null;
+        URL.revokeObjectURL(audioUrl);
+        reject(e);
       });
-
-      return new Promise((resolve, reject) => {
-        audio.onended = () => {
-          this.isSpeaking    = false;
-          this.currentAudio  = null;
-          URL.revokeObjectURL(audioUrl);
-          resolve();
-        };
-        audio.onerror = (e) => {
-          this.isSpeaking    = false;
-          this.currentAudio  = null;
-          URL.revokeObjectURL(audioUrl);
-          reject(e);
-        };
-        audio.play().catch((e) => {
-          this.isSpeaking    = false;
-          this.currentAudio  = null;
-          URL.revokeObjectURL(audioUrl);
-          reject(e);
-        });
-      });
-
-    } catch (error) {
-      console.error("❌ Google TTS falló, usando Web Speech API:", error.message);
-      this.isSpeaking = false;
-      return this._speakWithWebSpeech(text, language, options);
-    }
+    });
+  } catch (error) {
+    console.error("❌ Google TTS falló, usando Web Speech API:", error.message);
+    this.isSpeaking = false;
+    return this._speakWithWebSpeech(text, language, options);
   }
+}
 
   /** Fallback: Web Speech API del navegador */
   async _speakWithWebSpeech(text, language, options = {}) {
