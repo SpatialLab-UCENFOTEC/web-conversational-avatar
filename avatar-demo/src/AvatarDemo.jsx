@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { googleTTS } from "./services/googleTTS";
 import { sttService } from "./services/googleSTT";
-import { startFakeLipSync } from "./services/lipSync";
+import { startLipSyncFromAudioElement } from "./services/lipSync";
 import InochiAvatarCanvas from "./components/InochiAvatarCanvas";
 import "./AvatarDemo.css";
 
@@ -90,15 +90,15 @@ const AvatarDemo = () => {
     });
   }, []);
 
-  const stopLipSync = useCallback(() => {
-    if (lipSyncRef.current) {
-      lipSyncRef.current.stop();
-      lipSyncRef.current = null;
-    }
+const stopLipSync = useCallback(() => {
+  if (lipSyncRef.current) {
+    lipSyncRef.current.stop();
+    lipSyncRef.current = null;
+  }
 
-    avatarRef.current?.setMouthOpen?.(0);
-    avatarRef.current?.setMode?.("idle");
-  }, []);
+  avatarRef.current?.setMouthOpen?.(0.7); // boca en reposo
+  avatarRef.current?.setMode?.("idle");
+}, []);
 
   const stopListening = useCallback(() => {
     sttService.stop?.();
@@ -173,15 +173,37 @@ const AvatarDemo = () => {
 
       stopLipSync();
 
-      lipSyncRef.current = startFakeLipSync((value) => {
-        avatarRef.current?.setMouthOpen?.(value);
-      });
-
-     await googleTTS.speak(aiResponse, "es-US", {
+    await googleTTS.speak(aiResponse, "es-US", {
       speed: 0.95,
       voiceName: "es-US-Chirp-HD-O",
-      languageCode: "es-US"
-      });
+      languageCode: "es-US",
+
+ onAudioStart: () => {
+  stopLipSync();
+
+  const audio = googleTTS.getCurrentAudio?.();
+
+  lipSyncRef.current = startLipSyncFromAudioElement(
+    audio,
+   (value) => {
+  const boosted = Math.pow(Math.min(value * 2.5, 1), 0.5);
+
+  const mouthValue = 0.01 + boosted * 0.99; // 👈 desde casi cerrada hasta abierta
+
+  avatarRef.current?.setMouthOpen?.(mouthValue);
+},
+    {
+      gain: 8.0,
+      smooth: 0.65,
+      minOpen: 0.0,
+    }
+  );
+},
+  onAudioEnd: () => {
+  stopLipSync();
+  avatarRef.current?.setMouthOpen?.(0.07); // reposo también aquí
+},
+});
       scrollToChat();
     } catch (error) {
       console.error("Error:", error);
