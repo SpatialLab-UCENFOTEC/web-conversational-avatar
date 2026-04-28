@@ -89,14 +89,16 @@ const AvatarDemo = () => {
       block: "end",
     });
   }, []);
+const lipSyncActiveRef = useRef(false);
 
 const stopLipSync = useCallback(() => {
+  lipSyncActiveRef.current = false;
+
   if (lipSyncRef.current) {
-    lipSyncRef.current.stop();
+    lipSyncRef.current.stop(); // ← esto llama onValue(0), que aplica 0.08
     lipSyncRef.current = null;
   }
 
-  avatarRef.current?.setMouthOpen?.(0.7); // boca en reposo
   avatarRef.current?.setMode?.("idle");
 }, []);
 
@@ -178,20 +180,27 @@ const stopLipSync = useCallback(() => {
       voiceName: "es-US-Chirp-HD-O",
       languageCode: "es-US",
 
- onAudioStart: () => {
+onAudioStart: () => {
   stopLipSync();
+  lipSyncActiveRef.current = true;
 
   const audio = googleTTS.getCurrentAudio?.();
 
   lipSyncRef.current = startLipSyncFromAudioElement(
     audio,
-   (value) => {
-  const boosted = Math.pow(Math.min(value * 2.5, 1), 0.5);
+    (value) => {
+      if (!lipSyncActiveRef.current) return;
 
-  const mouthValue = 0.01 + boosted * 0.99; // 👈 desde casi cerrada hasta abierta
+      // value === 0 significa que el lip sync terminó → aplicar reposo
+      if (value === 0) {
+        avatarRef.current?.setMouthOpen?.(0.08);
+        return;
+      }
 
-  avatarRef.current?.setMouthOpen?.(mouthValue);
-},
+      const boosted = Math.pow(Math.min(value * 2.5, 1), 0.5);
+      const mouthValue = 0.08 + boosted * (0.9 - 0.08);
+      avatarRef.current?.setMouthOpen?.(mouthValue);
+    },
     {
       gain: 8.0,
       smooth: 0.65,
@@ -199,9 +208,8 @@ const stopLipSync = useCallback(() => {
     }
   );
 },
-  onAudioEnd: () => {
+ onAudioEnd: () => {
   stopLipSync();
-  avatarRef.current?.setMouthOpen?.(0.07); // reposo también aquí
 },
 });
       scrollToChat();
@@ -212,7 +220,7 @@ const stopLipSync = useCallback(() => {
       setIsProcessing(false);
       setIsSpeaking(false);
       stopLipSync();
-      avatarRef.current?.setMouthOpen?.(0);
+      avatarRef.current?.setMouthOpen?.(0.08);
       avatarRef.current?.setMode?.("idle");
     }
   }, [

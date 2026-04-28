@@ -12,7 +12,7 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 let instanceCounter = 0;
 
 // Ajusta este valor si quieres la boca más/menos cerrada en reposo
-const REST_MOUTH = 0.02;
+const REST_MOUTH = 0.8;
 
 
 const InochiAvatarCanvas = forwardRef(function InochiAvatarCanvas(
@@ -30,7 +30,7 @@ const InochiAvatarCanvas = forwardRef(function InochiAvatarCanvas(
 
   const mouthParamRef = useRef(null);
  const stateRef = useRef({
-  mouthOpen: 0,
+  mouthOpen: 0.02,
   mode: "idle",
 });
 
@@ -103,7 +103,7 @@ const applyParams = () => {
   : 0;},
 
     closeMouth() {
-      stateRef.current.mouthOpen = 0;
+      stateRef.current.mouthOpen = REST_MOUTH; 
     },
 
     setZoom(zoom) {
@@ -201,7 +201,7 @@ const applyParams = () => {
         applyCam();
 
         // Fuerza la boca en reposo al cargar
-       stateRef.current.mouthOpen = 0;
+       stateRef.current.mouthOpen = REST_MOUTH; 
 applyParams();
 
         if (containerRef.current) {
