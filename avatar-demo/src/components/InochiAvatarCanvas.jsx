@@ -29,10 +29,23 @@ const InochiAvatarCanvas = forwardRef(function InochiAvatarCanvas(
   const [status, setStatus] = useState("Inicializando avatar...");
 
   const mouthParamRef = useRef(null);
- const stateRef = useRef({
-  mouthOpen: 0.02,
-  mode: "idle",
+  const headParamRef = useRef(null);
+  const targetHeadRef = useRef({ x: 0, y: 0 });
+  const currentHeadRef = useRef({ x: 0, y: 0 });
+  const blinkParamRef = useRef(null);
+const breathParamRef = useRef(null);
+
+const blinkRef = useRef({
+  value: 0,
+  nextBlinkAt: performance.now() + 1500,
 });
+
+const idleTimeRef = useRef(0);
+
+ const stateRef = useRef({
+    mouthOpen: REST_MOUTH,
+  mode: "idle",
+  });
 
   // Tus valores actuales de cámara
   const camRef = useRef({
@@ -80,11 +93,64 @@ const InochiAvatarCanvas = forwardRef(function InochiAvatarCanvas(
   };
 const applyParams = () => {
   const viewer = viewerRef.current;
-  if (!viewer || !mouthParamRef.current) return;
+  if (!viewer) return;
 
   try {
-    const mouth = clamp(stateRef.current.mouthOpen, 0, 1);
-    viewer.set_param(mouthParamRef.current, mouth, 0);
+    if (mouthParamRef.current) {
+      const mouth = clamp(stateRef.current.mouthOpen, 0, 1);
+      viewer.set_param(mouthParamRef.current, mouth, 0);
+    }
+
+    if (headParamRef.current) {
+  let targetX = targetHeadRef.current.x;
+  let targetY = targetHeadRef.current.y;
+  // Parpadeo automático
+if (blinkParamRef.current) {
+  const now = performance.now();
+
+  if (now >= blinkRef.current.nextBlinkAt) {
+    blinkRef.current.value = 1;
+    blinkRef.current.nextBlinkAt = now + 2200 + Math.random() * 1800;
+  }
+
+  blinkRef.current.value += (0 - blinkRef.current.value) * 0.22;
+
+  viewer.set_param(
+    blinkParamRef.current,
+    clamp(blinkRef.current.value, 0, 1),
+    0
+  );
+}
+
+// Respiración suave / idle
+idleTimeRef.current += 0.016;
+
+const idleBreath = 0.5 + Math.sin(idleTimeRef.current * 1.4) * 0.08;
+
+if (breathParamRef.current) {
+  viewer.set_param(breathParamRef.current, idleBreath, 0);
+}
+
+  // Micro movimiento cuando escucha
+  if (stateRef.current.mode === "listening") {
+    const t = performance.now() / 1000;
+    targetX += Math.sin(t * 1.6) * 0.04;
+    targetY += Math.sin(t * 1.2) * 0.02;
+  }
+
+  // Suavizado (solo UNA vez)
+  currentHeadRef.current.x +=
+    (targetX - currentHeadRef.current.x) * 0.1;
+
+  currentHeadRef.current.y +=
+    (targetY - currentHeadRef.current.y) * 0.1;
+
+  viewer.set_param(
+    headParamRef.current,
+    currentHeadRef.current.x,
+    currentHeadRef.current.y
+  );
+}
   } catch (e) {
     console.warn("param:", e);
   }
@@ -92,8 +158,18 @@ const applyParams = () => {
 
   useImperativeHandle(ref, () => ({
     setMode(mode) {
-      stateRef.current.mode = mode || "idle";
-    },
+    stateRef.current.mode = mode || "idle";
+
+    if (mode === "listening") {
+  targetHeadRef.current = { x: -0.27, y: 0.06};
+  stateRef.current.mouthOpen = 0.65; // abre un poco la boca en modo listening
+} else if (mode === "speaking") {
+  targetHeadRef.current = { x: 0.08, y: 0.02 };
+} else {
+  targetHeadRef.current = { x: 0, y: 0 };
+  stateRef.current.mouthOpen = REST_MOUTH;
+}
+  },
 
     setMouthOpen(value) {
       const v = Number(value);
@@ -197,6 +273,23 @@ const applyParams = () => {
 
         console.log("Parámetro de boca detectado:", mouthParamRef.current);
 
+
+        headParamRef.current =
+        params.find((p) => p.name === "Head::Yaw-Pitch")?.name || null;
+
+        console.log("Parámetro de cabeza detectado:", headParamRef.current);
+        blinkParamRef.current =
+        params.find((p) => p.name === "Eyes::Blink")?.name || null;
+
+        breathParamRef.current =
+          params.find((p) =>
+            p.name?.toLowerCase().includes("breath") ||
+            p.name?.toLowerCase().includes("respira")
+          )?.name || null;
+
+        console.log("Parámetro de parpadeo detectado:", blinkParamRef.current);
+        console.log("Parámetro de respiración detectado:", breathParamRef.current);
+
         resizeCanvas();
         applyCam();
 
@@ -290,3 +383,4 @@ applyParams();
 });
 
 export default InochiAvatarCanvas;
+export const AVATAR_REST_MOUTH = 0.8; // mismo valor que REST_MOUTH
