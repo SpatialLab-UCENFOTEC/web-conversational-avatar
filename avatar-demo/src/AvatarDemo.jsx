@@ -3,6 +3,7 @@ import { googleTTS } from "./services/googleTTS";
 import { sttService } from "./services/googleSTT";
 import { startLipSyncFromAudioElement } from "./services/lipSync";
 import InochiAvatarCanvas from "./components/InochiAvatarCanvas";
+
 import "./AvatarDemo.css";
 
 const AvatarDemo = () => {
@@ -12,6 +13,8 @@ const AvatarDemo = () => {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [conversation, setConversation] = useState([]);
+ const AVATAR_REST_MOUTH = 0.8;
+const AVATAR_OPEN_MOUTH = 0.15;
 
   const [ttsStatus, setTtsStatus] = useState({
     googleLoaded: false,
@@ -95,10 +98,12 @@ const stopLipSync = useCallback(() => {
   lipSyncActiveRef.current = false;
 
   if (lipSyncRef.current) {
-    lipSyncRef.current.stop(); // ← esto llama onValue(0), que aplica 0.08
+    lipSyncRef.current.stop();
     lipSyncRef.current = null;
   }
 
+  // Aplica el reposo real (0.08) y modo idle
+  avatarRef.current?.setMouthOpen?.(AVATAR_REST_MOUTH);
   avatarRef.current?.setMode?.("idle");
 }, []);
 
@@ -187,29 +192,26 @@ onAudioStart: () => {
   const audio = googleTTS.getCurrentAudio?.();
 
   lipSyncRef.current = startLipSyncFromAudioElement(
-    audio,
-    (value) => {
-      if (!lipSyncActiveRef.current) return;
+  audio,
+  (value) => {
+    if (!lipSyncActiveRef.current) return;
 
-      // value === 0 significa que el lip sync terminó → aplicar reposo
-      if (value === 0) {
-        avatarRef.current?.setMouthOpen?.(0.08);
-        return;
-      }
+    const boosted = Math.pow(Math.min(value * 3.5, 1), 0.45);
 
-      const boosted = Math.pow(Math.min(value * 2.5, 1), 0.5);
-      const mouthValue = 0.08 + boosted * (0.9 - 0.08);
-      avatarRef.current?.setMouthOpen?.(mouthValue);
-    },
-    {
-      gain: 8.0,
-      smooth: 0.65,
-      minOpen: 0.0,
-    }
-  );
+    const mouthValue =
+      AVATAR_REST_MOUTH - boosted * (AVATAR_REST_MOUTH - AVATAR_OPEN_MOUTH);
+
+    avatarRef.current?.setMouthOpen?.(mouthValue);
+  },
+  {
+    gain: 8.0,
+    smooth: 0.65,
+    minOpen: 0.06,
+  }
+);
 },
- onAudioEnd: () => {
-  stopLipSync();
+onAudioEnd: () => {
+  stopLipSync();  // ya pone 0.08
 },
 });
       scrollToChat();
@@ -217,12 +219,10 @@ onAudioStart: () => {
       console.error("Error:", error);
       alert("Error al hablar: " + error.message);
     } finally {
-      setIsProcessing(false);
-      setIsSpeaking(false);
-      stopLipSync();
-      avatarRef.current?.setMouthOpen?.(0.08);
-      avatarRef.current?.setMode?.("idle");
-    }
+  setIsProcessing(false);
+  setIsSpeaking(false);
+  stopLipSync();  
+}
   }, [
     inputText,
     isListening,
@@ -233,18 +233,19 @@ onAudioStart: () => {
     stopLipSync,
   ]);
 
-  const handleStop = useCallback(() => {
-    googleTTS.stop?.();
-    setIsSpeaking(false);
-    setIsProcessing(false);
+ const handleStop = useCallback(() => {
+  googleTTS.stop?.();
+  setIsSpeaking(false);
+  setIsProcessing(false);
 
-    if (isListening) {
-      stopListening();
-    }
+  if (isListening) {
+    stopListening();
+  }
 
-    stopLipSync();
-    avatarRef.current?.setMode?.("idle");
-  }, [isListening, stopListening, stopLipSync]);
+  stopLipSync();
+  //avatarRef.current?.setMouthOpen?.(AVATAR_REST_MOUTH);
+  avatarRef.current?.setMode?.("idle");
+}, [isListening, stopListening, stopLipSync]);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
