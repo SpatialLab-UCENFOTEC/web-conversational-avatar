@@ -17,7 +17,10 @@ export async function handler(event) {
   }
 
   try {
-    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+    const auth = new GoogleAuth({
+    keyFile: join(__dirname, "google-credentials.json"),
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
 
     const auth = new GoogleAuth({
       credentials,
