@@ -1,10 +1,18 @@
 import { GoogleAuth } from "google-auth-library";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Content-Type": "application/json",
+};
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
-      statusCode: 200,
-    body: JSON.stringify({ ok: true }),
+      statusCode: 204,
+      headers: corsHeaders,
+      body: "",
     };
   }
 
@@ -21,23 +29,18 @@ export async function handler(event) {
 
     return {
       statusCode: 200,
-      headers: corsHeaders(),
-      body: JSON.stringify({ access_token: tokenResponse.token }),
+      headers: corsHeaders,
+      body: JSON.stringify({
+        access_token: tokenResponse.token,
+      }),
     };
-  } catch (error) {
+  } catch (err) {
     return {
       statusCode: 500,
-      headers: corsHeaders(),
-      body: JSON.stringify({ error: error.message }),
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: err.message,
+      }),
     };
   }
-}
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Content-Type": "application/json",
-  };
 }
