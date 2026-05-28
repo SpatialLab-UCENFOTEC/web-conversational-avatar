@@ -2,7 +2,7 @@
 // (api/chat.js) y el proxy local de desarrollo (server/index.js).
 // La API key vive solo en el servidor (GEMINI_API_KEY), nunca en el cliente.
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash-lite";
 
 const SYSTEM_INSTRUCTION =
   "Eres un avatar conversacional en español. Responde de forma breve (1-3 frases), " +
