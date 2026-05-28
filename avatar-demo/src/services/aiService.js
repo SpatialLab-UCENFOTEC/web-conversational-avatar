@@ -1,42 +1,38 @@
-// src/services/aiService.js
+// Cliente del LLM. Llama a la función serverless /api/chat (Gemini server-side).
+// En local apunta al proxy (VITE_CHAT_PROXY_URL, p.ej. http://localhost:3001);
+// en producción usa "/api" (mismo origen en Vercel).
 class AIService {
   constructor() {
-    this.apiBase = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+    this.base = import.meta.env.VITE_CHAT_PROXY_URL || "/api";
   }
 
-  async generateResponse(userMessage) {
+  async generateResponse(message, history = []) {
     try {
-      const response = await fetch(`${this.apiBase}/generate`, {
+      const res = await fetch(`${this.base}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: userMessage,
-          model: "llama3.2",
-        }),
+        body: JSON.stringify({ message, history }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.error || `Error ${res.status}`);
       }
 
-      const data = await response.json();
+      const data = await res.json();
       return data.response;
     } catch (error) {
-      console.error("Error al obtener respuesta:", error);
-      return this.fallbackResponse(userMessage);
+      console.error("Error al obtener respuesta del LLM:", error);
+      return this.fallbackResponse(message);
     }
   }
 
-  fallbackResponse(userMessage) {
-    const lowerMessage = userMessage.toLowerCase();
-
-    if (lowerMessage.includes("hola")) return "¡Hola! ¿Cómo estás?";
-    if (lowerMessage.includes("cómo estás")) return "Estoy bien, gracias por preguntar.";
-    if (lowerMessage.includes("qué es un avatar"))
-      return "Un avatar es una representación digital de una persona, a menudo usada en entornos virtuales.";
-    if (lowerMessage.includes("qué puedes hacer"))
-      return "Puedo responder tus preguntas y hablar contigo usando texto a voz.";
-    return "Interesante pregunta. ¿Puedes contarme más?";
+  // Respuesta de respaldo si el LLM no está disponible.
+  fallbackResponse(message) {
+    const m = message.toLowerCase();
+    if (m.includes("hola")) return "¡Hola! ¿En qué te ayudo?";
+    if (m.includes("ayuda")) return "Puedes hablarme por micrófono o escribir.";
+    return "Lo siento, ahora mismo no puedo responder. Intenta de nuevo.";
   }
 }
 
