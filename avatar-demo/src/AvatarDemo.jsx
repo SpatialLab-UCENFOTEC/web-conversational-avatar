@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { googleTTS } from "./services/googleTTS";
 import { sttService } from "./services/googleSTT";
+import { aiService } from "./services/aiService";
 import { startLipSyncFromAudioElement } from "./services/lipSync";
 import InochiAvatarCanvas from "./components/InochiAvatarCanvas";
 
@@ -30,25 +31,6 @@ const AVATAR_OPEN_MOUTH = 0.15;
   const lipSyncRef = useRef(null);
   const conversationEndRef = useRef(null);
   const avatarContainerRef = useRef(null);
-
-  const getLocalResponse = useCallback((userMessage) => {
-    const m = userMessage.toLowerCase();
-
-    if (m.includes("hola")) {
-      return "¡Hola! Estoy funcionando con Inochi2D en React. ¿En qué te ayudo?";
-    }
-    if (m.includes("quién") || m.includes("quien")) {
-      return "Soy un avatar conversacional renderizado con Inochi2D, con voz y sincronización labial.";
-    }
-    if (m.includes("ayuda")) {
-      return "Puedes hablar con el micrófono o escribir. Yo responderé con voz.";
-    }
-    if (m.includes("lip") || m.includes("boca")) {
-      return "Estoy moviendo la boca con parámetros del modelo Inochi2D.";
-    }
-
-    return "Estoy en modo demo sin servidor. Si quieres IA real, luego conectamos un backend.";
-  }, []);
 
   useEffect(() => {
     const checkStatus = () => {
@@ -168,7 +150,7 @@ const stopLipSync = useCallback(() => {
     setIsProcessing(true);
 
     try {
-      const aiResponse = getLocalResponse(userMessage);
+      const aiResponse = await aiService.generateResponse(userMessage, conversation);
 
       setConversation((prev) => [
         ...prev,
@@ -229,7 +211,7 @@ onAudioEnd: () => {
     stopListening,
     scrollToAvatar,
     scrollToChat,
-    getLocalResponse,
+    conversation,
     stopLipSync,
   ]);
 

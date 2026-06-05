@@ -26,3 +26,8 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Google service account credentials — NUNCA subir al repo
+google-credentials.json
+**/google-credentials.json
+*.serviceaccount.json
