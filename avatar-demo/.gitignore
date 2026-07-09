@@ -22,12 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# environment variables
+# environment variables — solo se versiona .env.example
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Google service account credentials — NUNCA subir al repo
+# Google service account credentials / secretos — NUNCA subir al repo
 google-credentials.json
 **/google-credentials.json
+*-credentials.json
+*.credentials.json
 *.serviceaccount.json
+serviceAccount*.json
+service-account*.json
+*.pem
+*.key
+*.p12

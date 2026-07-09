@@ -1,0 +1,31 @@
+# === Red de seguridad global del repo ===
+# Cada subproyecto (avatar-demo, web-avatar, llm-server) tiene su propio .gitignore;
+# esto cubre el repo entero para evitar volver a filtrar secretos.
+
+# Variables de entorno — solo se versionan los .env.example
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Credenciales / service accounts / llaves — NUNCA subir al repo
+google-credentials.json
+**/google-credentials.json
+*-credentials.json
+*.credentials.json
+*.serviceaccount.json
+serviceAccount*.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependencias / build / SO
+node_modules/
+dist/
+dist-ssr/
+.DS_Store
+*.log

@@ -305,16 +305,13 @@ Validation is performed against:
 import.meta.env.VITE_DEMO_PASSWORD
 ```
 
-Default password:
+There is **no hardcoded default password**. The gate stays closed unless
+`VITE_DEMO_PASSWORD` is provided at build time.
+
+`.env` file (never commit real values — see `.env.example`):
 
 ```
-REDACTED-DEMO-PASSWORD
-```
-
-`.env` file:
-
-```
-VITE_DEMO_PASSWORD=REDACTED-DEMO-PASSWORD
+VITE_DEMO_PASSWORD=<your-demo-password>
 ```
 
 Ensure that `.env` is included in `.gitignore`.

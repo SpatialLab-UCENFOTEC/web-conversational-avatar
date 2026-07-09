@@ -7,11 +7,16 @@ const PasswordGate = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
 
-  // Leer contraseña desde variable de entorno o usar valor por defecto
-  const CORRECT_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || 'REDACTED-DEMO-PASSWORD';
+  // La contraseña se lee SOLO desde la variable de entorno VITE_DEMO_PASSWORD.
+  // No hay valor por defecto hardcodeado: si no está configurada, el gate no deja pasar.
+  const CORRECT_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || '';
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!CORRECT_PASSWORD) {
+      setError('El demo no está configurado: falta VITE_DEMO_PASSWORD.');
+      return;
+    }
     if (password === CORRECT_PASSWORD) {
       setIsAuthenticated(true);
       setError('');
